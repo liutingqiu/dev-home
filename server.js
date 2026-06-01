@@ -36,7 +36,7 @@ function checkChatAuth(req, res) {
 function checkReplyAuth(req, res) {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const key = url.searchParams.get('key');
-  if (!REPLY_KEY) return false;
+  if (!REPLY_KEY) { send(res, 500, { error: 'Reply not configured' }); return false; }
   if (!key || key !== REPLY_KEY) { send(res, 403, { error: 'Forbidden' }); return false; }
   return true;
 }
