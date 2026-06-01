@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>零依赖全栈开发实战：一行 npm install 都不用 · dev-home</title>
+<meta name="description" content="从鲜味居到 ALTESSE，我用纯 HTML+CSS+JS+Node.js 原生模块交付了多个商业项目。本文复盘零依赖架构的选型逻辑、实际收益和边界。">
+<meta property="og:title" content="零依赖全栈开发实战：一行 npm install 都不用">
+<meta property="og:description" content="从鲜味居到 ALTESSE，我用纯 HTML+CSS+JS+Node.js 原生模块交付了多个商业项目。本文复盘零依赖架构的选型逻辑、实际收益和边界。">
+<meta property="og:type" content="article">
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.article{max-width:780px;margin:60px auto;padding:0 24px}
+.article-header{margin-bottom:40px;text-align:center}
+.article-header h1{font-size:32px;line-height:1.3;margin-bottom:12px}
+.article-meta{color:var(--text-secondary);font-size:14px}
+.article-meta span{margin:0 8px}
+.article-tag{display:inline-block;padding:2px 10px;border-radius:12px;background:var(--border-light);font-size:12px;margin:2px}
+.article-body{font-size:17px;line-height:1.85;color:var(--text-primary)}
+.article-body h2{font-size:24px;margin:40px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--border-light)}
+.article-body h3{font-size:20px;margin:32px 0 12px}
+.article-body p{margin-bottom:16px}
+.article-body ul,.article-body ol{margin:12px 0 12px 24px}
+.article-body li{margin-bottom:6px}
+.article-body code{background:var(--bg-card);padding:2px 6px;border-radius:4px;font-size:14px}
+.article-body pre{background:var(--bg-card);padding:16px;border-radius:var(--radius-md);overflow-x:auto;margin:16px 0;font-size:14px;line-height:1.5}
+.article-body pre code{background:none;padding:0}
+.article-body blockquote{border-left:3px solid var(--accent-success);padding:8px 16px;margin:16px 0;color:var(--text-secondary);background:var(--bg-card);border-radius:0 var(--radius-sm) var(--radius-sm) 0}
+.article-body img{max-width:100%;border-radius:var(--radius-md);margin:16px 0}
+.article-body hr{border:none;border-top:1px solid var(--border-light);margin:32px 0}
+.article-body a{color:var(--accent-success);text-decoration:underline}
+.article-footer{margin-top:60px;padding:24px 0;border-top:1px solid var(--border-light);text-align:center;font-size:14px}
+.article-footer a{color:var(--accent-success)}
+@media(max-width:768px){.article{padding:0 16px}.article-header h1{font-size:24px}.article-body{font-size:15px}}
+</style>
+</head>
+<body>
+<div id="mainContent">
+<article class="article">
+  <div class="article-header">
+    <h1>零依赖全栈开发实战：一行 npm install 都不用</h1>
+    <div class="article-meta">
+      <span>📅 2026-05-28</span>
+      <span>📁 全栈开发</span>
+    </div>
+    <div><span class="article-tag">Node.js</span> <span class="article-tag">零依赖</span> <span class="article-tag">全栈</span> <span class="article-tag">HTML</span> <span class="article-tag">CSS</span></div>
+  </div>
+  <div class="article-body">
+    <h2>为什么一行 npm install 都不用</h2>
+<p>2024 年接第一个建站单子时，我在 package.json 面前犹豫了很久。Express？Koa？Fastify？每个框架都有学习成本、版本兼容问题、以及最重要的——客户的维护成本。</p>
+<p>最后我关掉了 npm，打开了一个空文件夹。</p>
+<p><strong>零依赖不等于原始。</strong> Node.js 内置的 <code>http</code>、<code>fs</code>、<code>crypto</code>、<code>zlib</code> 模块已经覆盖了建站需要的全部能力。你缺的不是框架，是把这些模块组合起来的经验。</p>
+<h2>真实项目架构</h2>
+<p>以鲜味居（粤菜餐厅官网）为例，完整技术栈：</p>
+<pre><code>前端: 纯 HTML + CSS + JS（零框架）
+后端: Node.js 原生 http 模块
+数据库: JSON 文件读写
+启动: node server.js</code></pre>
+<p>整个项目没有 <code>node_modules</code> 目录，克隆下来就能跑。部署到客户的 Windows 服务器上，不需要配环境、不需要解决依赖冲突——双击 bat 脚本就上线。</p>
+<h2>原生 http 路由表</h2>
+<p>很多人觉得不用 Express 写路由会很痛苦。实际上，一个简单的路由分发器不超过 20 行：</p>
+<pre><code>const routes = [];
+function route(method, pattern, handler) {
+  routes.push({ method, regex: new RegExp('^' + pattern + '$'), handler });
+}
+
+async function handleAPI(req, res) {
+  for (const r of routes) {
+    if (r.method !== req.method) continue;
+    const match = req.url.match(r.regex);
+    if (!match) continue;
+    await r.handler(req, res);
+    return true;
+  }
+  return false;
+}</code></pre>
+<p>鲜味居项目有 16 个 API 端点，全部通过这个分发器处理。路由注册用 if-else 链还是用上面的 route 函数，纯粹是组织方式的区别——效果一样。</p>
+<h2>JSON 数据库的原子写入</h2>
+<p>很多人担心 JSON 文件作数据库不可靠。解决方法是<strong>原子写入</strong>：</p>
+<pre><code>function writeJSON(filename, data) {
+  const p = path.join(DATA_DIR, filename);
+  fs.writeFileSync(p + '.tmp', JSON.stringify(data, null, 2));
+  fs.renameSync(p + '.tmp', p);
+}</code></pre>
+<p>先写 <code>.tmp</code>，再 <code>rename</code>。rename 是原子操作——要么成功，要么失败，不存在写一半崩溃导致数据损坏。这是操作系统保证的，不是 Node.js 的特性。</p>
+<h2>安全：零依赖意味着零供应链攻击</h2>
+<p>2024-2025 年 npm 供应链攻击频发。<code>left-pad</code> 事件、<code>event-stream</code> 后门、<code>ua-parser-js</code> 挖矿——每次都是成千上万项目受影响。</p>
+<p>零依赖架构天然免疫这些。你的攻击面缩小到了 4 个内置模块：<code>http</code>、<code>crypto</code>、<code>fs</code>、<code>zlib</code>。Go 标准库经过 Google 审查，Node.js 核心模块经过社区审查，安全性远超任何第三方 npm 包。</p>
+<h2>真正的边界在哪</h2>
+<p>零依赖不是万能药。以下场景不适用：</p>
+<ul>
+<li><strong>复杂模板渲染</strong>：用 EJS/Pug 比手写字符串拼接更高效</li>
+<li><strong>ORM</strong>：数据关系复杂时，手写 SQL/JSON 查询容易出错</li>
+<li><strong>WebSocket</strong>：原生 <code>ws</code> 需要手动处理帧协议，不如直接用 <code>ws</code> 库</li>
+</ul>
+<p>但对于<strong>中小实体店官网</strong>这个细分市场——零依赖是最优解。</p>
+<h2>实战建议</h2>
+<p>如果你也想尝试零依赖全栈：</p>
+<ol>
+<li><strong>从 server.js 骨架开始</strong>：路由分发 + 静态文件 + JSON 读写，200 行就够</li>
+<li><strong>安全优先</strong>：scrypt 密码哈希 + XSS 转义 + 速率限制，一个不能少</li>
+<li><strong>Gzip 压缩</strong>：<code>zlib.gzipSync()</code> 一行代码，HTML/CSS/JS 体积减 70%</li>
+<li><strong>原子写入</strong>：数据永远用 <code>.tmp</code> + <code>rename</code> 模式</li>
+<li><strong>部署用 Vercel</strong>：<code>api/index.js</code> 单文件全路由，零配置上线</li>
+</ul>
+<p>完整项目源码在 GitHub 开源，欢迎参考。</p>
+  </div>
+  <div class="article-footer">
+    <a href="/blog/">← 返回博客</a> &nbsp;·&nbsp;
+    <a href="/">返回首页</a>
+  </div>
+</article>
+</div>
+</body>
+</html>

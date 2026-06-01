@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Node.js 原生安全加固：5 道防线保护你的 JSON 数据库 · dev-home</title>
+<meta name="description" content="不用任何 npm 包，纯 Node.js 内置模块实现工业级安全——密码哈希、XSS 防护、速率限制、原子写入和目录遍历防护。">
+<meta property="og:title" content="Node.js 原生安全加固：5 道防线保护你的 JSON 数据库">
+<meta property="og:description" content="不用任何 npm 包，纯 Node.js 内置模块实现工业级安全——密码哈希、XSS 防护、速率限制、原子写入和目录遍历防护。">
+<meta property="og:type" content="article">
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.article{max-width:780px;margin:60px auto;padding:0 24px}
+.article-header{margin-bottom:40px;text-align:center}
+.article-header h1{font-size:32px;line-height:1.3;margin-bottom:12px}
+.article-meta{color:var(--text-secondary);font-size:14px}
+.article-meta span{margin:0 8px}
+.article-tag{display:inline-block;padding:2px 10px;border-radius:12px;background:var(--border-light);font-size:12px;margin:2px}
+.article-body{font-size:17px;line-height:1.85;color:var(--text-primary)}
+.article-body h2{font-size:24px;margin:40px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--border-light)}
+.article-body h3{font-size:20px;margin:32px 0 12px}
+.article-body p{margin-bottom:16px}
+.article-body ul,.article-body ol{margin:12px 0 12px 24px}
+.article-body li{margin-bottom:6px}
+.article-body code{background:var(--bg-card);padding:2px 6px;border-radius:4px;font-size:14px}
+.article-body pre{background:var(--bg-card);padding:16px;border-radius:var(--radius-md);overflow-x:auto;margin:16px 0;font-size:14px;line-height:1.5}
+.article-body pre code{background:none;padding:0}
+.article-body blockquote{border-left:3px solid var(--accent-success);padding:8px 16px;margin:16px 0;color:var(--text-secondary);background:var(--bg-card);border-radius:0 var(--radius-sm) var(--radius-sm) 0}
+.article-body img{max-width:100%;border-radius:var(--radius-md);margin:16px 0}
+.article-body hr{border:none;border-top:1px solid var(--border-light);margin:32px 0}
+.article-body a{color:var(--accent-success);text-decoration:underline}
+.article-footer{margin-top:60px;padding:24px 0;border-top:1px solid var(--border-light);text-align:center;font-size:14px}
+.article-footer a{color:var(--accent-success)}
+@media(max-width:768px){.article{padding:0 16px}.article-header h1{font-size:24px}.article-body{font-size:15px}}
+</style>
+</head>
+<body>
+<div id="mainContent">
+<article class="article">
+  <div class="article-header">
+    <h1>Node.js 原生安全加固：5 道防线保护你的 JSON 数据库</h1>
+    <div class="article-meta">
+      <span>📅 2026-05-30</span>
+      <span>📁 安全</span>
+    </div>
+    <div><span class="article-tag">Node.js</span> <span class="article-tag">安全</span> <span class="article-tag">scrypt</span> <span class="article-tag">XSS</span> <span class="article-tag">速率限制</span></div>
+  </div>
+  <div class="article-body">
+    <h2>安全不是可选项</h2>
+<p>2025 年 OWASP Top 10 里，失效的访问控制、注入攻击、加密失败仍然是最高频的安全威胁。对于中小网站来说，攻击者不会因为你规模小就放过你——自动扫描脚本不在乎目标是谁。</p>
+<p>好消息是：Node.js 内置模块足以构建坚固的安全防线。</p>
+<h2>第一道防线：密码哈希</h2>
+<p>永远不要存储明文密码。SHA-256 也不够——因为 GPU 可以每秒计算数十亿次 SHA-256，暴力破解成本太低。</p>
+<p>正确做法是用 <strong>scrypt</strong>——专门设计来对抗暴力破解的密钥派生函数：</p>
+<pre><code>const crypto = require('crypto');
+
+function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync(password, salt, 64).toString('hex');
+  return `${salt}:${hash}`;
+}
+
+function verifyPassword(password, stored) {
+  const [salt, hash] = stored.split(':');
+  return hash === crypto.scryptSync(password, salt, 64).toString('hex');
+}</code></pre>
+<p>scrypt 的设计目标是「内存密集」——每次哈希需要分配大量内存，这让 GPU 并行暴力破解变得极度昂贵。</p>
+<h2>第二道防线：XSS 防护</h2>
+<p>任何来自用户输入的数据，写入数据库之前都要转义：</p>
+<pre><code>function esc(str) {
+  return String(str)
+    .replace(/&amp;/g, '&amp;amp;')
+    .replace(/&lt;/g, '&amp;lt;')
+    .replace(/&gt;/g, '&amp;gt;')
+    .replace(/&quot;/g, '&amp;quot;')
+    .replace(/'/g, '&amp;#39;');
+}</code></pre>
+<p>注意：不是在<strong>输出时</strong>转义，而是在<strong>存储前</strong>转义。这样即使前端忘了转义，数据库里存的就是安全的。</p>
+<h2>第三道防线：速率限制</h2>
+<p>没有速率限制的 API 是免费算力——攻击者可以无限次尝试密码，或把服务器当代理。</p>
+<pre><code>const rateLimit = new Map();
+const RATE_LIMIT = 60;
+const RATE_WINDOW = 60000; // 1 分钟
+
+function checkRate(ip) {
+  const now = Date.now();
+  const r = rateLimit.get(ip);
+  if (!r || now - r.reset &gt; RATE_WINDOW) {
+    rateLimit.set(ip, { count: 1, reset: now });
+    return true;
+  }
+  r.count++;
+  return r.count &lt;= RATE_LIMIT;
+}</code></pre>
+<p>每 IP 每分钟 60 请求——正常用户不可能达到，但脚本一秒就能冲破。</p>
+<h2>第四道防线：原子写入</h2>
+<p>JSON 文件作数据库，最大的风险是写入一半进程崩溃导致数据损坏。解决方案来自操作系统：</p>
+<pre><code>function writeJSON(filename, data) {
+  const p = path.join(DATA_DIR, filename);
+  fs.writeFileSync(p + '.tmp', JSON.stringify(data));
+  fs.renameSync(p + '.tmp', p);
+}</code></pre>
+<p><code>rename</code> 是<strong>原子系统调用</strong>。要么完整成功，要么完全不变。不存在中间状态。</p>
+<h2>第五道防线：目录遍历防护</h2>
+<p>攻击者可能会尝试通过 URL 访问服务器上的任意文件：</p>
+<pre><code>GET /../../../etc/passwd</code></pre>
+<p>防护很简单——检查解析后的路径是否在项目根目录内：</p>
+<pre><code>const ROOT_SAFE = ROOT + path.sep;
+if (!fullPath.startsWith(ROOT_SAFE)) {
+  return send(res, 403, { error: 'Forbidden' });
+}</code></pre>
+<h2>安全响应头</h2>
+<p>最后补上几个 HTTP 头，花 3 行代码挡住大量常见攻击：</p>
+<pre><code>res.setHeader('X-Content-Type-Options', 'nosniff');
+res.setHeader('X-Frame-Options', 'DENY');
+res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');</code></pre>
+<h2>小结</h2>
+<p>零依赖不等于零安全。Node.js 的 <code>crypto</code>、<code>fs</code>、<code>zlib</code> 模块 + 正确的架构设计 = 完全可以达到生产级安全性。关键不在于用了多少库，在于是否理解每条防线背后的原理。</p>
+  </div>
+  <div class="article-footer">
+    <a href="/blog/">← 返回博客</a> &nbsp;·&nbsp;
+    <a href="/">返回首页</a>
+  </div>
+</article>
+</div>
+</body>
+</html>

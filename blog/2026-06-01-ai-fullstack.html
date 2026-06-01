@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>AI 辅助全栈开发：我如何用 Reasonix 从零搭建内容矩阵 · dev-home</title>
+<meta name="description" content="一个人 + AI 助手 = 一个完整的内容矩阵运营系统。本文记录从想法到上线 48 小时的全过程——Chat PWA、爬虫、日报、博客、灵感池、邮件通知、GitHub 部署。">
+<meta property="og:title" content="AI 辅助全栈开发：我如何用 Reasonix 从零搭建内容矩阵">
+<meta property="og:description" content="一个人 + AI 助手 = 一个完整的内容矩阵运营系统。本文记录从想法到上线 48 小时的全过程——Chat PWA、爬虫、日报、博客、灵感池、邮件通知、GitHub 部署。">
+<meta property="og:type" content="article">
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.article{max-width:780px;margin:60px auto;padding:0 24px}
+.article-header{margin-bottom:40px;text-align:center}
+.article-header h1{font-size:32px;line-height:1.3;margin-bottom:12px}
+.article-meta{color:var(--text-secondary);font-size:14px}
+.article-meta span{margin:0 8px}
+.article-tag{display:inline-block;padding:2px 10px;border-radius:12px;background:var(--border-light);font-size:12px;margin:2px}
+.article-body{font-size:17px;line-height:1.85;color:var(--text-primary)}
+.article-body h2{font-size:24px;margin:40px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--border-light)}
+.article-body h3{font-size:20px;margin:32px 0 12px}
+.article-body p{margin-bottom:16px}
+.article-body ul,.article-body ol{margin:12px 0 12px 24px}
+.article-body li{margin-bottom:6px}
+.article-body code{background:var(--bg-card);padding:2px 6px;border-radius:4px;font-size:14px}
+.article-body pre{background:var(--bg-card);padding:16px;border-radius:var(--radius-md);overflow-x:auto;margin:16px 0;font-size:14px;line-height:1.5}
+.article-body pre code{background:none;padding:0}
+.article-body blockquote{border-left:3px solid var(--accent-success);padding:8px 16px;margin:16px 0;color:var(--text-secondary);background:var(--bg-card);border-radius:0 var(--radius-sm) var(--radius-sm) 0}
+.article-body img{max-width:100%;border-radius:var(--radius-md);margin:16px 0}
+.article-body hr{border:none;border-top:1px solid var(--border-light);margin:32px 0}
+.article-body a{color:var(--accent-success);text-decoration:underline}
+.article-footer{margin-top:60px;padding:24px 0;border-top:1px solid var(--border-light);text-align:center;font-size:14px}
+.article-footer a{color:var(--accent-success)}
+@media(max-width:768px){.article{padding:0 16px}.article-header h1{font-size:24px}.article-body{font-size:15px}}
+</style>
+</head>
+<body>
+<div id="mainContent">
+<article class="article">
+  <div class="article-header">
+    <h1>AI 辅助全栈开发：我如何用 Reasonix 从零搭建内容矩阵</h1>
+    <div class="article-meta">
+      <span>📅 2026-06-01</span>
+      <span>📁 AI开发</span>
+    </div>
+    <div><span class="article-tag">AI</span> <span class="article-tag">Reasonix</span> <span class="article-tag">自动化</span> <span class="article-tag">内容运营</span> <span class="article-tag">全栈</span></div>
+  </div>
+  <div class="article-body">
+    <h2>一个人的全栈运营团队</h2>
+<p>2026 年 6 月 1 日，我有了一个想法：「让 AI 全权运营一个小红书账号」。分析后发现手机端的物理限制无法突破，但换个方向——建一个内容矩阵，从数据采集到文章发布全程自动化——完全可行。</p>
+<p>48 小时后，这个系统上线了。</p>
+<h2>系统全景</h2>
+<pre><code>数据采集层: 7源爬虫 → 30分钟轮换 → 每日150+条原始数据
+    ↓
+内容生产层: 规则过滤 → 日报自动生成 + AI 深度文章
+    ↓
+分发层: dev-home 主站 + 知乎/掘金
+    ↓
+变现层: 搜索流量 → 个人品牌 → 接单转化</code></pre>
+<p>另外还有三个辅助系统：</p>
+<ul>
+<li><strong>Chat PWA</strong>：手机端的实时对话 + 灵感池</li>
+<li><strong>邮件通知</strong>：异常告警 + 每日摘要</li>
+<li><strong>GitHub 备份</strong>：所有代码和内容云端存储</li>
+</ul>
+<h2>Chat PWA：出门也能联系 AI</h2>
+<p>这是整个系统里用户体验要求最高的部分。设计目标：</p>
+<ol>
+<li>PWA 全屏（可添加到手机主屏幕）</li>
+<li>双模式：实时对话 + 灵感池</li>
+<li>顶部状态栏显示 AI 当前任务</li>
+<li>消息轮询 + 弹窗通知</li>
+<li>URL Token 鉴权</li>
+</ul>
+<p>纯 HTML + CSS + JS 实现，零框架。Service Worker 做离线缓存，manifest.json 配置全屏模式。</p>
+<h2>爬虫系统的设计考量</h2>
+<p>最棘手的不是爬取逻辑——是<strong>反反爬</strong>：</p>
+<ol>
+<li><strong>API 优先</strong>：GitHub、Hacker News、Reddit 有公开 API，不触碰 HTML</li>
+<li><strong>轮换间隔</strong>：同源 15 分钟一轮，避免触发限流</li>
+<li><strong>User-Agent 轮换</strong>：3 个真实浏览器 UA 随机切换</li>
+<li><strong>优雅降级</strong>：爬失败的源不阻塞整体流程，标记错误后跳过</li>
+</ul>
+<p>中文源（知乎、掘金、V2EX）的反爬更严格——知乎直接 403，掘金的 CSS 选择器一天一变。所以我把这些源标记为「实验性」，优先保证 GitHub + HN 的稳定。</p>
+<h2>灵感池：不打断主流程的 idea 收集</h2>
+<p>移动端最大的特点是「碎片化思考」。地铁上、排队时、睡前——想法一闪而过，打开笔记 App 打字太慢，等坐到电脑前已经忘了。</p>
+<p>灵感池解决了这个问题。手机上点 💡 → 输入想法 → 保存。AI 空闲时自动分析：</p>
+<ul>
+<li>关键词分类（AI / Web / 工具 / 安全...）</li>
+<li>可行性评估（高 / 中 / 低）</li>
+<li>技术方案草稿</li>
+</ul>
+<p>主人随时可以问：「我之前那个 XX 想法分析了吗？」AI 直接从存档调取。</p>
+<h2>最意外的收获：邮件每日摘要</h2>
+<p>每天早上 08:30，系统自动发邮件：</p>
+<pre><code>爬虫状态: 2/2 源正常
+日报发布: 5 期
+灵感池: 3 条待分析
+下次建议: 知乎近 3 天零互动，需调整标题</code></pre>
+<p>这封邮件给了我一种「系统还活着」的安心感——不需要登录服务器，扫一眼邮箱就知道一切正常。</p>
+<h2>复盘：48 小时做了什么</h2>
+<p>| 阶段 | 内容 | 时间 |</p>
+<p>|---|---|---|</p>
+<p>| 需求分析 | 讨论可行性、漏洞、回环逻辑 | 4h |</p>
+<p>| 基础设施 | GitHub 仓库、目录结构、部署流水线 | 2h |</p>
+<p>| 通信系统 | Chat PWA + 5 个 API + Token 鉴权 | 4h |</p>
+<p>| 爬虫系统 | 7 源轮换 + cheerio + 错误重试 | 3h |</p>
+<p>| 日报系统 | 规则分类 + HTML 模板 + 原子部署 | 2h |</p>
+<p>| 博客系统 | MD → HTML 构建器 | 1h |</p>
+<p>| 辅助系统 | 邮件通知、灵感分析、计划任务 | 3h |</p>
+<p>| 内容生产 | 5 篇深度文章 | 3h |</p>
+<p>| 部署调试 | 阿里云部署、Chat 双向打通 | 6h |</p>
+<p><strong>总代码量</strong>：约 3500 行（27 个新文件，1 个依赖）</p>
+<h2>写在最后</h2>
+<p>这个项目证明了：一个人的全栈运营团队，不是幻想。AI 不是替代你，是让你从重复劳动里解放出来——把时间花在真正需要创造力的地方。</p>
+<p>全部源码开源于 GitHub，欢迎参考和贡献。</p>
+  </div>
+  <div class="article-footer">
+    <a href="/blog/">← 返回博客</a> &nbsp;·&nbsp;
+    <a href="/">返回首页</a>
+  </div>
+</article>
+</div>
+</body>
+</html>
