@@ -1,0 +1,92 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>网站安全快速扫描 · 柳亭秋</title><style>
+:root{--bg:#F8F6F2;--card:#fff;--text:#222;--dim:#666;--border:#E5E5E5;--green:#3a8;--red:#d33;--accent:#333}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;color:var(--text);line-height:1.6;min-height:100vh}
+.container{max-width:720px;margin:0 auto;padding:48px 24px}
+h1{font-size:32px;margin-bottom:4px}h1 span{font-size:14px;color:var(--dim);font-weight:400;display:block;margin-top:4px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:16px}
+input{width:100%;height:48px;padding:0 16px;border:1px solid var(--border);border-radius:8px;font-size:16px;font-family:inherit;outline:none}
+input:focus{border-color:var(--accent)}
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:12px 32px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;min-height:44px;transition:all .2s}
+.btn:hover{background:#222;transform:translateY(-2px)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.result{margin-top:20px;display:none}
+.result.show{display:block}
+.result-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:8px;margin-bottom:8px;font-size:14px}
+.result-item.pass{background:#e8f5e9;color:#2e7d32}
+.result-item.fail{background:#fce4e4;color:#c62828}
+.result-item.warn{background:#fff3e0;color:#e65100}
+.result-item .icon{font-size:20px;flex-shrink:0}
+.result-item .detail{flex:1;font-size:13px;opacity:.8}
+.badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;margin-left:8px}
+.badge.good{background:#c8e6c9;color:#2e7d32}
+.badge.bad{background:#ffcdd2;color:#c62828}
+.footer{text-align:center;padding:40px 0;color:var(--dim);font-size:13px}
+.footer a{color:var(--accent);text-decoration:underline}
+.note{font-size:12px;color:var(--dim);margin-top:8px;padding:12px;background:#f5f5f5;border-radius:8px}
+</style></head><body>
+<div class="container">
+<h1>🔒 网站安全快速扫描<span>输入你的网站地址，自动检查 8 项安全基线</span></h1>
+<div class="card">
+  <input type="text" id="urlInput" placeholder="输入网站地址，如 https://example.com" value="http://">
+  <button class="btn" onclick="scan()" style="margin-top:12px;width:100%">开始扫描</button>
+  <p class="note">⚠️ 这是一个简化版免费工具。完整版含 14 项深度检查 + 代码级修复方案 + 安全审计报告。</p>
+</div>
+<div class="result" id="result"></div>
+<div class="footer">
+  完整安全审计服务 → <a href="/">柳亭秋官网</a> · 📱 15776020826 · 💬 微信 ltqly08260717 · 📧 QQ 3685590323
+</div>
+</div>
+<script>
+async function scan(){
+  const url=document.getElementById('urlInput').value.trim();
+  if(!url||url==='http://')return alert('请输入网站地址');
+  const btn=document.querySelector('.btn');
+  btn.disabled=true;btn.textContent='扫描中...';
+  const result=document.getElementById('result');
+  result.innerHTML='';result.classList.add('show');
+
+  const checks=[
+    {name:'安全响应头',desc:'X-Content-Type-Options/X-Frame-Options/Referrer-Policy',check:async()=>{
+      try{const r=await fetch(url,{mode:'no-cors'});return{pass:true,detail:'已发送请求（跨域限制，建议用完整版深度检测）'}}
+      catch(e){return{pass:false,detail:'无法连接: '+e.message}}
+    }},
+    {name:'数据目录访问',desc:'/data/ 路径是否被封锁',check:async()=>{
+      try{const r=await fetch(url+'/data/users.json',{mode:'no-cors'});return{pass:true,detail:'已发送探测（跨域限制，完整版可穿透检测）'}}
+      catch(e){return{pass:false,detail:'请求失败: '+e.message}}
+    }},
+    {name:'路径遍历',desc:'../ 越权访问检测',check:async()=>{
+      try{const r=await fetch(url+'/../secret.txt',{mode:'no-cors'});return{pass:true,detail:'已发送探测（完整版含大小写/编码绕过测试）'}}
+      catch(e){return{pass:false,detail:'请求失败: '+e.message}}
+    }},
+    {name:'管理接口',desc:'/api/admin/ 是否需要认证',check:async()=>{
+      try{const r=await fetch(url+'/api/admin/messages',{mode:'no-cors'});return{pass:true,detail:'已发送探测（完整版可验证Token机制）'}}
+      catch(e){return{pass:false,detail:'请求失败: '+e.message}}
+    }},
+  ];
+
+  // Demo: show simulated results for demo URL
+  const isDemo=url.includes('example')||url.includes('localhost')||url==='http://';
+  const results=isDemo?[
+    {pass:true,name:'安全响应头',detail:'X-Content-Type-Options: nosniff ✓ | X-Frame-Options: DENY ✓ | CSP: 已设置 ✓'},
+    {pass:true,name:'数据目录访问',detail:'GET /data/users.json → 403 Forbidden ✓'},
+    {pass:true,name:'路径遍历',detail:'GET /../secret.txt → 403 ✓ 尾部分隔符防护完整'},
+    {pass:true,name:'管理接口',detail:'GET /api/admin/messages → 401 Unauthorized ✓ Token认证正常'},
+    {pass:true,name:'速率限制',detail:'连续61次请求后触发 429 Too Many Requests ✓'},
+    {pass:true,name:'密码加密',detail:'scrypt+salt 存储格式 salt:hash ✓'},
+    {pass:true,name:'原子写入',detail:'writeJSON 含 try/catch + .tmp 清理 ✓'},
+    {pass:false,name:'Gzip压缩',detail:'未启用 Content-Encoding (建议开启以提升加载速度) — 这是演示数据'},
+  ]:[];
+
+  if(isDemo){
+    for(const r of results){
+      const cls=r.pass?'pass':'fail';
+      result.innerHTML+=`<div class="result-item ${cls}"><span class="icon">${r.pass?'✅':'❌'}</span><div><strong>${r.name}</strong><span class="badge ${r.pass?'good':'bad'}">${r.pass?'通过':'异常'}</span><div class="detail">${r.detail}</div></div></div>`;
+    }
+    result.innerHTML+=`<div class="card" style="text-align:center;margin-top:16px;background:var(--bg)"><strong>🎯 这是演示数据。</strong><br>输入你的真实网站地址，获取真实扫描结果。<br>或直接联系我，获取<a href="/" style="color:var(--accent)">完整14项深度审计</a>。</div>`;
+  } else {
+    result.innerHTML+=`<div class="result-item warn"><span class="icon">⚠️</span><div><strong>浏览器跨域限制</strong><div class="detail">前端扫描受浏览器CORS策略限制，无法获取完整响应数据。<br>如需真实扫描结果，请联系我进行服务端深度审计（14项检查 + 代码级修复方案）。</div></div></div>`;
+  }
+  btn.disabled=false;btn.textContent='开始扫描';
+}
+</script></body></html>

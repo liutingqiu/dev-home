@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>柳亭秋 · 后台管理</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="stylesheet" href="/css/admin.css">
+</head>
+<body class="admin-body">
+
+<!-- Loading -->
+<div class="loading-overlay" id="loadingOverlay"><div class="loading-spinner"></div></div>
+
+<!-- Toast -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Login -->
+<div class="login-page active" id="loginPage">
+  <div class="login-card">
+    <div class="logo-icon">0x</div>
+    <h1>柳亭秋</h1>
+    <p class="sub">后台管理系统</p>
+    <form id="loginForm">
+      <input type="text" id="loginUser" placeholder="管理员账号" value="admin" required>
+      <input type="password" id="loginPass" placeholder="登录密码" required>
+      <button type="submit" class="btn">登 录</button>
+      <p class="login-error" id="loginError">账号或密码错误</p>
+    </form>
+  </div>
+</div>
+
+<!-- Admin -->
+<div class="admin-layout" id="adminLayout">
+  <aside class="admin-sidebar" id="sidebar">
+    <div class="brand"><span>柳亭秋</span></div>
+    <div class="user-info" id="sidebarUser">管理员</div>
+    <button class="sidebar-toggle" id="sidebarToggle" aria-label="菜单">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <nav class="admin-nav" id="adminNav">
+      <a href="#" data-tab="dashboard" data-label="工作台" class="active"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span>工作台</span></a>
+      <a href="#" data-tab="projects" data-label="项目管理"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg><span>项目管理</span></a>
+      <a href="#" data-tab="messages" data-label="客户留言"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg><span>客户留言</span></a>
+      <a href="#" data-tab="applications" data-label="项目申请"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="12" y2="16"/></svg><span>项目申请</span></a>
+      <a href="#" data-tab="settings" data-label="系统设置"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg><span>系统设置</span></a>
+      <a href="#" data-tab="users" data-label="账号管理"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg><span>账号管理</span></a>
+      <hr style="border:none;border-top:1px solid rgba(255,255,255,.06);margin:8px 16px">
+      <a href="/" data-label="返回前台"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 12l9-9 9 9"/><path d="M9 21V9h6v12"/></svg><span>← 返回前台</span></a>
+    </nav>
+    <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" title="折叠侧栏">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <button class="logout-btn" id="logoutBtn">退出登录</button>
+  </aside>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <main class="admin-main">
+    <!-- Dashboard -->
+    <div class="tab-content active" id="tab-dashboard">
+      <div class="page-header"><div><h2>工作台</h2><p>欢迎回来，以下是数据总览</p></div><button class="btn-refresh" onclick="refreshCurrentTab()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg> 刷新</button></div>
+      <div class="stat-cards" id="statCards"></div>
+    </div>
+
+    <!-- Projects -->
+    <div class="tab-content" id="tab-projects">
+      <div class="page-header"><div><h2>项目管理</h2><p>管理展示的项目案例</p></div><button class="btn-refresh" onclick="refreshCurrentTab()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg> 刷新</button></div>
+      <div class="table-wrap">
+        <div class="table-toolbar"><h3>全部项目 (<span id="projCount">0</span>)</h3><button class="btn-sm btn-add" onclick="openProjModal()">+ 新增项目</button></div>
+        <table><thead><tr><th>名称</th><th>类型</th><th>URL</th><th>推荐</th><th>操作</th></tr></thead><tbody id="projTable"></tbody></table>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div class="tab-content" id="tab-messages">
+      <div class="page-header"><div><h2>客户留言</h2><p>处理客户的咨询信息</p></div><button class="btn-refresh" onclick="refreshCurrentTab()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg> 刷新</button></div>
+      <div class="table-wrap" style="overflow-x:auto">
+        <table style="min-width:800px"><thead><tr><th>姓名</th><th>电话</th><th>留言</th><th>时间</th><th>状态</th><th>操作</th></tr></thead><tbody id="msgTable"></tbody></table>
+      </div>
+    </div>
+
+    <!-- Applications -->
+    <div class="tab-content" id="tab-applications">
+      <div class="page-header"><div><h2>项目申请</h2><p>来自 /apply.html 的客户项目申请</p></div><button class="btn-refresh" onclick="refreshCurrentTab()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg> 刷新</button></div>
+      <div class="table-wrap" style="overflow-x:auto">
+        <table style="min-width:700px"><thead><tr><th>姓名</th><th>电话</th><th>邮箱</th><th>需求</th><th>时间</th><th>状态</th><th>操作</th></tr></thead><tbody id="appTable"></tbody></table>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div class="tab-content" id="tab-settings">
+      <div class="page-header"><div><h2>系统设置</h2><p>配置站点基本信息</p></div><button class="btn-refresh" onclick="refreshCurrentTab()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg> 刷新</button></div>
+      <div class="table-wrap" style="padding:24px">
+        <form id="settingsForm">
+          <div class="form-row"><div class="form-group"><label>站点名称</label><input name="siteName"></div><div class="form-group"><label>标语</label><input name="slogan"></div></div>
+          <div class="form-row"><div class="form-group"><label>联系电话</label><input name="phone"></div><div class="form-group"><label>邮箱</label><input name="email"></div></div>
+          <div class="form-group"><label>地址</label><input name="address"></div>
+          <div class="form-group"><label>描述</label><textarea name="description" rows="3"></textarea></div>
+          <button type="submit" class="btn-sm btn-add" style="margin-top:16px">保存设置</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Users -->
+    <div class="tab-content" id="tab-users">
+      <div class="page-header"><div><h2>账号管理</h2><p>修改密码</p></div><button class="btn-refresh" onclick="refreshCurrentTab()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg> 刷新</button></div>
+      <div class="table-wrap" style="padding:20px;margin-bottom:20px">
+        <h3 style="margin-bottom:16px">修改密码</h3>
+        <div class="form-row" style="margin-bottom:12px"><div class="form-group"><label>当前密码</label><input type="password" id="currentPw"></div></div>
+        <div class="form-row" style="margin-bottom:12px"><div class="form-group"><label>新密码</label><input type="password" id="newPw"></div><div class="form-group"><label>确认新密码</label><input type="password" id="confirmPw"></div></div>
+        <button class="btn-sm btn-add" onclick="changePw()">修改密码</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay"><div class="modal" id="modalContent"></div></div>
+
+<script src="/js/admin.js"></script>
+
+<script src="http://121.41.95.44:4000/tracker.js" data-site-id="dev-home"></script>
+</body>
+</html>

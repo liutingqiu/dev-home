@@ -1,0 +1,14 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><meta name="robots" content="index,follow"><title>安全防护体系 · 柳亭秋</title><meta name="description" content="网站内置完整安全防护体系：scrypt密码加密存储、XSS过滤转义、请求速率限制、安全响应头、原子写入防崩溃。"><meta property="og:title" content="安全防护体系 · 柳亭秋"><meta property="og:description" content="scrypt加密、XSS过滤、速率限制、安全响应头，全栈防护。"><meta property="og:type" content="website"><link rel="stylesheet" href="/css/style.css"></head><body><div class="paper-bg"></div>
+<main class="sub-page container" style="max-width:800px;margin:0 auto">
+<nav><a href="/" class="back">&larr; 返回首页</a></nav>
+<article><h1>安全防护体系</h1><p class="sub-title">SECURITY</p>
+<div class="card"><p>网站从第一天起就内置完整的安全防护。密码使用scrypt加密存储（非SHA-256），所有用户输入经过XSS过滤转义，请求速率限制防止恶意攻击，Gzip压缩+安全响应头保障传输安全。</p></div>
+<h2>防护层级</h2>
+<div class="card"><strong>密码加密</strong><p style="color:#666;font-size:14px;margin-top:4px">scrypt+salt哈希存储，格式salt:hash，彩虹表无法破解</p></div>
+<div class="card"><strong>XSS过滤</strong><p style="color:#666;font-size:14px;margin-top:4px">所有用户输入写入前经esc()转义，HTML属性上下文双重防护</p></div>
+<div class="card"><strong>速率限制</strong><p style="color:#666;font-size:14px;margin-top:4px">每IP每分钟60请求上限，防止恶意刷接口</p></div>
+<div class="card"><strong>安全响应头</strong><p style="color:#666;font-size:14px;margin-top:4px">nosniff+DENY+referrer，防止点击劫持和MIME嗅探</p></div>
+<div style="text-align:center;margin-top:50px"><a href="/" class="btn-dark" style="display:inline-flex;width:auto;padding:0 24px">返回首页</a></div>
+</article></main>
+<script src="http://121.41.95.44:4000/tracker.js" data-site-id="dev-home"></script>
+</body></html>

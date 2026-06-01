@@ -1,0 +1,20 @@
+# 敏感数据
+data/chat-config.json
+data/users.json
+data/chat-images/
+
+# 业务数据（服务器自有）
+data/messages.json
+data/applications.json
+data/projects.json
+data/settings.json
+data/chat/
+
+# Node
+node_modules/
+
+# 临时
+*.tmp
+.tmp/
+.DS_Store
+Thumbs.db

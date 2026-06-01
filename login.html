@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>柳亭秋 · 后台管理</title>
+<meta name="robots" content="noindex,nofollow">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter','PingFang SC',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0a0a0f,#12121a,#0a0a0f);position:relative;overflow:hidden}
+body::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle,rgba(0,212,224,.03) 0%,transparent 50%);animation:rotate 30s linear infinite}
+@keyframes rotate{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.login-container{position:relative;z-index:10;width:420px;max-width:90%;padding:50px 40px;background:rgba(18,18,26,.95);backdrop-filter:blur(20px);border-radius:16px;box-shadow:0 25px 50px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.06);animation:slideUp .6s ease-out}
+@keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+.logo{text-align:center;margin-bottom:35px}
+.logo-icon{display:inline-block;width:64px;height:64px;line-height:64px;font-size:32px;background:linear-gradient(135deg,#00d4e0,#9b30ff);color:#fff;border-radius:16px;box-shadow:0 10px 30px rgba(0,212,224,.3);margin-bottom:15px}
+.logo h1{font-size:22px;font-weight:700;color:#d8d8e0;letter-spacing:2px}
+.logo p{font-size:13px;color:#7a7a88;margin-top:5px}
+.form-group{margin-bottom:20px}
+.form-group input{width:100%;padding:14px 18px;border:1px solid rgba(255,255,255,.08);border-radius:8px;font-size:15px;font-family:inherit;transition:all .3s;background:rgba(255,255,255,.04);color:#d8d8e0;outline:none}
+.form-group input:focus{border-color:#00d4e0;box-shadow:0 0 0 3px rgba(0,212,224,.1)}
+.btn-login{width:100%;padding:16px;background:linear-gradient(135deg,#00d4e0,#9b30ff);color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:600;font-family:inherit;letter-spacing:2px;cursor:pointer;transition:all .3s;box-shadow:0 4px 15px rgba(0,212,224,.3)}
+.btn-login:hover{transform:translateY(-3px);box-shadow:0 8px 25px rgba(0,212,224,.4)}
+.btn-login:active{transform:translateY(-1px)}
+.error-msg{color:#ff4466;text-align:center;margin-top:15px;padding:12px;background:rgba(255,68,102,.1);border-radius:8px;font-size:14px;display:none}
+.footer-text{text-align:center;margin-top:30px;font-size:12px}
+.footer-text a{color:#7a7a88;text-decoration:none}.footer-text a:hover{color:#00d4e0}
+@media(max-width:480px){.login-container{padding:40px 24px;border-radius:12px}.logo-icon{width:56px;height:56px;font-size:28px}}
+</style>
+</head>
+<body>
+<div class="login-container">
+  <div class="logo">
+    <div class="logo-icon">0x</div>
+    <h1>柳亭秋</h1>
+    <p>后台管理系统</p>
+  </div>
+  <form id="loginForm">
+    <div class="form-group"><input type="text" name="username" placeholder="管理员账号" value="admin" required></div>
+    <div class="form-group"><input type="password" name="password" placeholder="登录密码" required></div>
+    <button type="submit" class="btn-login">登 录</button>
+    <p class="error-msg" id="errorMsg">账号或密码错误，请重试</p>
+  </form>
+  <div class="footer-text"><a href="/">← 返回前台网站</a></div>
+</div>
+<script>
+document.getElementById('loginForm').addEventListener('submit',async function(e){
+  e.preventDefault();
+  const fd=new FormData(this);
+  try{
+    const r=await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:fd.get('username'),password:fd.get('password')})});
+    const d=await r.json();
+    if(d.token){localStorage.setItem('adminToken',d.token);location.href='/admin.html'}
+    else{document.getElementById('errorMsg').style.display='block'}
+  }catch{document.getElementById('errorMsg').style.display='block'}
+});
+</script>
+
+<script src="http://121.41.95.44:4000/tracker.js" data-site-id="dev-home"></script>
+</body>
+</html>
