@@ -18,16 +18,26 @@ const COMPRESSIBLE = ['.html', '.css', '.js', '.json', '.svg'];
 
 // ============ Chat 鉴权 ============
 let CHAT_KEY = '';
+let REPLY_KEY = '';
 try {
   const chatConfig = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'chat-config.json'), 'utf-8'));
   CHAT_KEY = chatConfig.key || '';
+  REPLY_KEY = chatConfig.replyKey || '';
 } catch {}
 
 function checkChatAuth(req, res) {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const key = url.searchParams.get('key');
-  if (!CHAT_KEY) return true; // 未配置时放行（开发模式）
+  if (!CHAT_KEY) return true;
   if (!key || key !== CHAT_KEY) { send(res, 403, { error: 'Forbidden' }); return false; }
+  return true;
+}
+
+function checkReplyAuth(req, res) {
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  const key = url.searchParams.get('key');
+  if (!REPLY_KEY) return false;
+  if (!key || key !== REPLY_KEY) { send(res, 403, { error: 'Forbidden' }); return false; }
   return true;
 }
 
@@ -568,6 +578,32 @@ route('POST', '/api/inspire', async (req, res) => {
     console.error('灵感写入失败:', e.message);
     send(res, 500, { error: '保存失败' });
   }
+});
+
+route('POST', '/api/reply', async (req, res) => {
+  if (!checkReplyAuth(req, res)) return;
+  const data = await readBody(req);
+  if (data.__error) { send(res, 400, { error: data.__error }); return; }
+  if (!V.len(data.content, 1, 5000)) { send(res, 400, { error: '回复内容为1-5000字符' }); return; }
+
+  const now = new Date();
+  const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const messages = readChatMessages(month);
+
+  const msg = {
+    id: generateMsgId(),
+    from: 'reasonix',
+    mode: 'urgent',
+    type: 'text',
+    content: esc(data.content),
+    image: null,
+    read: false,
+    createdAt: now.toISOString()
+  };
+
+  messages.push(msg);
+  writeChatMessages(month, messages);
+  send(res, 200, { success: true, id: msg.id });
 });
 
 route('GET', '/api/status', (req, res) => {
