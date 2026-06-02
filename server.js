@@ -645,7 +645,33 @@ route('GET', '/api/stats', (req, res) => {
   send(res, 200, readStats());
 });
 
+// 爬虫状态 — 本地推送过来的数据
+const SERVER_CRAWLER_FILE = path.join(DATA_DIR, 'crawler-state.json');
+const SERVER_STATUS_FILE = path.join(DATA_DIR, 'status.json');
+
 route('GET', '/api/crawler-state', (req, res) => {
+  try { send(res, 200, JSON.parse(fs.readFileSync(SERVER_CRAWLER_FILE, 'utf-8'))); }
+  catch { send(res, 200, {}); }
+});
+
+route('POST', '/api/update-crawler-state', async (req, res) => {
+  const data = await readBody(req);
+  if (data.__error) { send(res, 400, {}); return; }
+  fs.writeFileSync(SERVER_CRAWLER_FILE + '.tmp', JSON.stringify(data, null, 2), 'utf-8');
+  fs.renameSync(SERVER_CRAWLER_FILE + '.tmp', SERVER_CRAWLER_FILE);
+  send(res, 200, { ok: true });
+});
+
+route('POST', '/api/update-status', async (req, res) => {
+  const data = await readBody(req);
+  if (data.__error) { send(res, 400, {}); return; }
+  fs.writeFileSync(SERVER_STATUS_FILE + '.tmp', JSON.stringify(data, null, 2), 'utf-8');
+  fs.renameSync(SERVER_STATUS_FILE + '.tmp', SERVER_STATUS_FILE);
+  send(res, 200, { ok: true });
+});
+
+// 新: 爬虫状态 — 回退到本地文件
+route('GET', '/api/crawler-state-local', (req, res) => {
   const stateFile = path.join(ROOT, '..', 'portfolio', 'data', 'crawler-state.json');
   try { send(res, 200, JSON.parse(fs.readFileSync(stateFile, 'utf-8'))); }
   catch { send(res, 200, {}); }
