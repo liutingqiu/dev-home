@@ -2,658 +2,186 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=yes">
 <title>Reasonix Chat</title>
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#0A0A0A">
 <link rel="manifest" href="/manifest.json">
 <style>
-:root {
-  --bg: #0A0A0A;
-  --bg-card: #141414;
-  --bg-input: #1E1E1E;
-  --text: #E8E8E8;
-  --text-dim: #888;
-  --accent: #4A9;
-  --accent-dim: #2A6;
-  --danger: #E44;
-  --border: #2A2A2A;
-  --radius: 10px;
-  --font: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
-}
+:root{--bg:#0A0A0A;--card:#141414;--input:#1E1E1E;--text:#E8E8E8;--dim:#888;--green:#4A9;--red:#E44;--border:#2A2A2A}
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{height:100dvh;height:100vh;overflow:hidden;position:fixed;top:0;left:0;right:0;bottom:0}
-body{
-  background:var(--bg);color:var(--text);font-family:var(--font);
-  display:flex;flex-direction:column;
-  -webkit-tap-highlight-color:transparent;
-}
-#mainApp{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;position:relative}
-#chatArea{display:flex;flex:1;flex-direction:column;min-height:0}
-#chatArea.hidden{display:none}
-#inspireArea{display:none;flex:1;flex-direction:column;min-height:0;overflow-y:auto;padding:16px}
-#inspireArea.show{display:flex}
+html,body{width:100%;height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif}
+#mainApp{display:none;width:100%;height:100%;flex-direction:column}
+#mainApp.on{display:flex}
 
-/* ====== 顶部状态栏 ====== */
-#statusBar{
-  display:flex;align-items:center;gap:8px;
-  padding:10px 16px;
-  background:var(--bg-card);
-  border-bottom:1px solid var(--border);
-  font-size:13px;flex-shrink:0;
-  cursor:pointer;
-}
-#statusDot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-#statusDot.active{background:var(--accent);box-shadow:0 0 6px var(--accent)}
-#statusDot.idle{background:var(--text-dim)}
-#statusDot.error{background:var(--danger);box-shadow:0 0 6px var(--danger)}
+/* header */
+#topBar{flex-shrink:0}
+#statusBar{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--card);border-bottom:1px solid var(--border);font-size:12px;flex-shrink:0}
+#statusDot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+#statusDot.ok{background:var(--green);box-shadow:0 0 6px var(--green)}
+#statusDot.idle{background:var(--dim)}
+#statusDot.err{background:var(--red)}
 #statusText{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#statusTime{color:var(--text-dim);font-size:11px;flex-shrink:0}
-#statusDetail{display:none;font-size:11px;color:var(--text-dim);padding:4px 16px 8px;background:var(--bg-card);border-bottom:1px solid var(--border)}
-#statusBar.expanded + #statusDetail{display:block}
+#tabBar{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+#tabBar button{flex:1;padding:10px;border:none;background:none;color:var(--dim);font-size:14px;font-family:inherit;border-bottom:2px solid transparent}
+#tabBar button.on{color:var(--green);border-bottom-color:var(--green)}
 
-/* ====== Tab 切换 ====== */
-#tabBar{
-  display:flex;flex-shrink:0;
-  border-bottom:1px solid var(--border);
-}
-#tabBar button{
-  flex:1;padding:12px;border:none;background:none;
-  color:var(--text-dim);font-size:15px;font-family:var(--font);
-  cursor:pointer;transition:color .2s;
-  border-bottom:2px solid transparent;
-}
-#tabBar button.active{color:var(--accent);border-bottom-color:var(--accent)}
-#tabBar button:active{opacity:.7}
+/* messages - THE KEY FIX */
+#msgList{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 14px;display:flex;flex-direction:column;gap:8px}
+.msg{max-width:85%;display:flex;flex-direction:column}
+.msg.me{align-self:flex-end;align-items:flex-end}
+.msg.rx{align-self:flex-start;align-items:flex-start}
+.msg .bubble{padding:10px 14px;border-radius:14px;font-size:14px;line-height:1.5;word-break:break-word}
+.msg.me .bubble{background:var(--green);color:#fff;border-bottom-right-radius:4px}
+.msg.rx .bubble{background:var(--card);border-bottom-left-radius:4px}
+.msg .time{font-size:10px;color:var(--dim);margin-top:2px;padding:0 4px}
+.msg img{max-width:200px;max-height:280px;border-radius:10px;cursor:pointer;margin:4px 0}
 
-/* ====== 快捷灵感按钮 ====== */
-#quickInspire{
-  position:absolute;right:16px;top:12px;z-index:2;
-  width:36px;height:36px;border-radius:50%;
-  background:var(--bg-card);border:1px solid var(--border);
-  color:var(--accent);font-size:18px;cursor:pointer;
-  display:none;align-items:center;justify-content:center;
-  transition:transform .15s;
-}
-#quickInspire:active{transform:scale(.9)}
-#quickInspire.show{display:flex}
+/* inspire */
+#inspireBox{display:none;flex:1;overflow-y:auto;padding:14px;flex-direction:column}
+#inspireBox.on{display:flex}
+#inspireInput{flex:1;min-height:120px;padding:12px;background:var(--card);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;font-family:inherit;resize:none;outline:none}
 
-/* ====== 消息列表 ====== */
-#msgContainer{
-  overflow-y:auto;padding:12px 16px;
-  display:flex;flex-direction:column;gap:10px;
-  overscroll-behavior:contain;
-  min-height:0;
-}
-.msg-row{display:flex;flex-direction:column;max-width:85%}
-.msg-row.master{align-self:flex-end;align-items:flex-end}
-.msg-row.reasonix{align-self:flex-start;align-items:flex-start}
-.msg-bubble{
-  padding:10px 14px;border-radius:16px;
-  font-size:15px;line-height:1.5;word-break:break-word;
-  position:relative;
-}
-.msg-row.master .msg-bubble{
-  background:var(--accent-dim);color:#fff;
-  border-bottom-right-radius:4px;
-}
-.msg-row.reasonix .msg-bubble{
-  background:var(--bg-card);color:var(--text);
-  border-bottom-left-radius:4px;
-}
-.msg-meta{
-  font-size:11px;color:var(--text-dim);
-  margin-top:2px;padding:0 4px;
-}
-.msg-image{
-  max-width:240px;max-height:320px;border-radius:12px;
-  cursor:pointer;object-fit:cover;
-}
-.msg-image-full{
-  position:fixed;top:0;left:0;width:100%;height:100%;
-  background:rgba(0,0,0,.9);z-index:100;
-  display:flex;align-items:center;justify-content:center;
-}
-.msg-image-full img{max-width:95%;max-height:95%;object-fit:contain}
+/* footer input */
+#inputArea{flex-shrink:0;display:flex;gap:6px;padding:8px 12px;background:var(--card);border-top:1px solid var(--border);align-items:flex-end}
+#inputArea.hide{display:none}
+#msgInput{flex:1;padding:10px 14px;background:var(--input);border:1px solid var(--border);border-radius:18px;color:var(--text);font-size:14px;font-family:inherit;resize:none;outline:none;max-height:100px}
+#sendBtn{flex-shrink:0;padding:8px 16px;border-radius:18px;background:var(--green);color:#fff;border:none;font-size:13px;font-family:inherit}
 
-/* ====== 底部输入区 ====== */
-#inputArea{
-  display:flex;gap:8px;padding:10px 16px;
-  background:var(--bg-card);border-top:1px solid var(--border);
-  flex-shrink:0;align-items:flex-end;
-}
-#msgInput{
-  flex:1;resize:none;padding:10px 14px;
-  background:var(--bg-input);border:1px solid var(--border);
-  border-radius:20px;color:var(--text);font-size:15px;
-  font-family:var(--font);line-height:1.4;
-  max-height:120px;outline:none;
-  transition:border-color .2s;
-}
-#msgInput:focus{border-color:var(--accent-dim)}
-#imgBtn{
-  width:40px;height:40px;border-radius:50%;
-  background:var(--bg-input);border:1px solid var(--border);
-  color:var(--text-dim);font-size:20px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  flex-shrink:0;transition:color .2s;
-}
-#imgBtn:active{color:var(--accent)}
-#sendBtn{
-  padding:8px 18px;border-radius:20px;
-  background:var(--accent-dim);color:#fff;border:none;
-  font-size:14px;font-family:var(--font);cursor:pointer;
-  flex-shrink:0;transition:background .2s;
-}
-#sendBtn:active{background:var(--accent)}
-#sendBtn:disabled{background:var(--border);color:var(--text-dim);cursor:default}
-#fileInput{display:none}
-#imgPreview{
-  display:none;padding:8px 16px 0;background:var(--bg-card);
-  align-items:center;gap:8px;
-}
-#imgPreview.show{display:flex}
-#imgPreview img{width:48px;height:48px;border-radius:8px;object-fit:cover}
-#imgPreview button{
-  background:var(--danger);color:#fff;border:none;
-  border-radius:50%;width:24px;height:24px;font-size:14px;
-  cursor:pointer;flex-shrink:0;
-}
+/* key page */
+#keyPage{display:flex;width:100%;height:100%;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+#keyPage h2{color:var(--green)}
+#keyInput{padding:10px 14px;background:var(--input);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:15px;text-align:center;outline:none;width:260px}
+#keyBtn{padding:10px 28px;border-radius:18px;background:var(--green);color:#fff;border:none;font-size:14px}
 
-/* ====== Toast ====== */
-#toast{
-  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
-  background:var(--bg-card);border:1px solid var(--accent);
-  border-radius:12px;padding:16px 24px;z-index:200;
-  display:none;text-align:center;max-width:280px;
-  box-shadow:0 8px 32px rgba(0,0,0,.5);
-}
-#toast.show{display:block;animation:toastIn .3s ease}
-#toast .toast-title{font-size:16px;color:var(--accent);margin-bottom:6px}
-#toast .toast-body{font-size:14px;color:var(--text-dim)}
-#toast .toast-btn{
-  margin-top:12px;padding:8px 24px;border-radius:20px;
-  background:var(--accent-dim);color:#fff;border:none;
-  font-size:14px;cursor:pointer;
-}
-
-/* ====== Key 输入页 ====== */
-#keyPage{
-  position:fixed;top:0;left:0;width:100%;height:100%;
-  background:var(--bg);z-index:300;
-  display:flex;align-items:center;justify-content:center;
-  flex-direction:column;gap:20px;padding:24px;
-}
-#keyPage h2{color:var(--accent);font-size:24px}
-#keyPage p{color:var(--text-dim);font-size:14px;text-align:center}
-#keyInput{
-  width:100%;max-width:300px;padding:12px 16px;
-  background:var(--bg-input);border:1px solid var(--border);
-  border-radius:12px;color:var(--text);font-size:16px;
-  text-align:center;outline:none;
-}
-#keyInput:focus{border-color:var(--accent-dim)}
-#keyBtn{
-  padding:10px 32px;border-radius:20px;
-  background:var(--accent-dim);color:#fff;border:none;
-  font-size:15px;cursor:pointer;
-}
-#keyError{color:var(--danger);font-size:13px;display:none}
-
-/* ====== 未读标记 ====== */
-.unread-badge{
-  background:var(--danger);color:#fff;font-size:10px;
-  padding:2px 7px;border-radius:10px;margin-left:6px;
-}
-
-@keyframes toastIn{from{opacity:0;transform:translate(-50%,-50%) scale(.9)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
-
-/* ====== 灵感池输入框 ====== */
-#inspireInput{
-  width:100%;min-height:120px;padding:14px;
-  background:var(--bg-card);border:1px solid var(--border);
-  border-radius:12px;color:var(--text);font-size:15px;
-  font-family:var(--font);resize:vertical;outline:none;
-  margin-bottom:12px;
-}
-#inspireInput:focus{border-color:var(--accent-dim)}
+#imgPreview{display:none;padding:4px 12px 0;gap:8px;align-items:center}
+#imgPreview.on{display:flex}
+#imgPreview img{width:40px;height:40px;border-radius:6px;object-fit:cover}
+#imgPreview button{background:var(--red);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:12px}
 </style>
 </head>
 <body>
 
-<!-- ====== Key 输入页 ====== -->
 <div id="keyPage">
-  <h2>🔐 Reasonix Chat</h2>
-  <p>请输入访问密钥</p>
-  <input id="keyInput" type="text" placeholder="32位密钥" autocomplete="off">
+  <h2>Reasonix Chat</h2>
+  <input id="keyInput" type="text" placeholder="输入密钥" autocomplete="off">
   <button id="keyBtn">进入</button>
-  <p id="keyError">密钥错误</p>
 </div>
 
-<!-- ====== 主界面 ====== -->
-<div id="mainApp" style="display:none;flex:1;flex-direction:column;position:relative">
-
-<!-- 状态栏 -->
-<div id="statusBar" onclick="toggleStatus()">
-  <div id="statusDot" class="idle"></div>
-  <span id="statusText">连接中...</span>
-  <span id="statusTime"></span>
-</div>
-<div id="statusDetail"></div>
-
-<!-- Tab -->
-<div id="tabBar">
-  <button class="active" data-tab="chat" onclick="switchTab('chat')">⚡ 实时对话</button>
-  <button data-tab="inspire" onclick="switchTab('inspire')">💡 灵感池</button>
-</div>
-
-<!-- 快捷灵感按钮 -->
-<button id="quickInspire" onclick="quickInspire()" title="快速灵感">💡</button>
-
-<!-- 聊天消息区 -->
-<div id="chatArea" class="">
-  <div id="msgContainer"></div>
-</div>
-
-<!-- 灵感池区 -->
-<div id="inspireArea" class="">
-  <div id="inspirePanel" style="flex:1;flex-direction:column;">
-  <textarea id="inspireInput" placeholder="写下你的灵感...&#10;&#10;我会在空闲时分析并给出方案，结果存档供你随时查阅。"></textarea>
-  <div id="inspireImgPreview" style="display:none;align-items:center;gap:8px;margin-bottom:12px">
-    <img id="inspireImgThumb" style="width:48px;height:48px;border-radius:8px;object-fit:cover">
-    <button onclick="clearInspireImage()" style="background:var(--danger);color:#fff;border:none;border-radius:50%;width:24px;height:24px;font-size:14px;cursor:pointer">✕</button>
+<div id="mainApp">
+  <div id="topBar">
+    <div id="statusBar" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+      <div id="statusDot" class="idle"></div>
+      <span id="statusText">连接中</span>
+    </div>
+    <div id="tabBar">
+      <button class="on" data-t="chat">⚡ 对话</button>
+      <button data-t="inspire">💡 灵感</button>
+    </div>
   </div>
-  <div style="display:flex;gap:8px">
-    <button id="inspireImgBtn" onclick="document.getElementById('fileInput2').click()" style="width:40px;height:40px;border-radius:50%;background:var(--bg-input);border:1px solid var(--border);color:var(--text-dim);font-size:18px;cursor:pointer">📎</button>
-    <input type="file" id="fileInput2" accept="image/*" onchange="handleInspireImage(this)" style="display:none">
-    <button id="inspireSendBtn" onclick="sendInspire()" style="flex:1;padding:10px;border-radius:20px;background:var(--accent-dim);color:#fff;border:none;font-size:14px;cursor:pointer">保存灵感</button>
+
+  <div id="msgList"></div>
+
+  <div id="inspireBox">
+    <textarea id="inspireInput" placeholder="写下灵感，我空闲时分析..."></textarea>
+    <div style="margin-top:10px"><button id="inspireSend" style="width:100%;padding:10px;border-radius:18px;background:var(--green);color:#fff;border:none;font-size:14px">保存灵感</button></div>
   </div>
-</div>
 
-<!-- 输入区（聊天Tab） -->
-<div id="inputArea">
-  <div id="imgPreview">
-    <img id="imgThumb" src="">
-    <button onclick="clearImage()">✕</button>
+  <div id="imgPreview"><img id="imgThumb"><button onclick="clearImg()">✕</button></div>
+  <div id="inputArea">
+    <button onclick="document.getElementById('fileInput').click()" style="width:34px;height:34px;border-radius:50%;background:var(--input);border:1px solid var(--border);color:var(--dim);font-size:16px;flex-shrink:0">📎</button>
+    <input type="file" id="fileInput" accept="image/*" onchange="pickImg(this)" style="display:none">
+    <textarea id="msgInput" rows="1" placeholder="输入..."></textarea>
+    <button id="sendBtn" disabled onclick="sendMsg()">发送</button>
   </div>
-  <button id="imgBtn" onclick="document.getElementById('fileInput').click()">📎</button>
-  <input type="file" id="fileInput" accept="image/*" onchange="handleImage(this)" style="display:none">
-  <textarea id="msgInput" rows="1" placeholder="输入消息..."></textarea>
-  <button id="sendBtn" disabled onclick="sendMessage()">发送</button>
-</div>
-
-</div><!-- /inspirePanel -->
-</div><!-- /inspireArea -->
-
-</div><!-- /mainApp -->
-
-<!-- Toast -->
-<div id="toast">
-  <div class="toast-title">⚡ Reasonix 回复了</div>
-  <div class="toast-body" id="toastBody"></div>
-  <button class="toast-btn" onclick="dismissToast()">知道了</button>
-</div>
-
-<!-- 图片全屏 -->
-<div id="imageFull" style="display:none" onclick="this.style.display='none'">
-  <img id="imageFullImg" src="">
 </div>
 
 <script>
 'use strict';
+let KEY='',lastId='',timer=null,pendingImg=null;
 
-// ============ 状态 ============
-let CHAT_KEY = '';
-let currentTab = 'chat';
-let lastMsgId = '';
-let pollingTimer = null;
-let pendingImage = null;
-let pendingInspireImage = null;
-let unreadUrgent = 0;
+const $=id=>document.getElementById(id);
+const stored=localStorage.getItem('rxkey');
+if(stored){KEY=stored;showMain();}
 
-// ============ Key 管理 ============
-const keyPage = document.getElementById('keyPage');
-const keyInput = document.getElementById('keyInput');
-const keyError = document.getElementById('keyError');
-const mainApp = document.getElementById('mainApp');
+$('keyBtn').onclick=async()=>{
+  const k=$('keyInput').value.trim();
+  if(!k)return;
+  try{const r=await fetch('/api/chat?key='+encodeURIComponent(k));if(r.ok){KEY=k;localStorage.setItem('rxkey',k);showMain()}else{$('keyInput').value='';$('keyInput').placeholder='密钥错误'}}
+  catch(e){$('keyInput').placeholder='网络错误'}
+};
 
-// 尝试从 URL 获取 key
-const urlParams = new URLSearchParams(location.search);
-const urlKey = urlParams.get('key');
-const storedKey = localStorage.getItem('reasonix_chat_key');
-
-if (urlKey) {
-  CHAT_KEY = urlKey;
-  localStorage.setItem('reasonix_chat_key', CHAT_KEY);
-  // 清除 URL 中的 key
-  history.replaceState(null, '', location.pathname);
-  showMain();
-} else if (storedKey) {
-  CHAT_KEY = storedKey;
-  showMain();
-} else {
-  keyPage.style.display = 'flex';
+async function showMain(){
+  $('keyPage').style.display='none';
+  $('mainApp').classList.add('on');
+  await loadMsgs();
+  poll();
+  setInterval(poll,20000);
+  setInterval(updateStatus,15000);
+  updateStatus();
+  $('msgInput').oninput=()=>{$('msgInput').style.height='auto';$('msgInput').style.height=Math.min($('msgInput').scrollHeight,100)+'px';$('sendBtn').disabled=!$('msgInput').value.trim()&&!pendingImg};
+  $('msgInput').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg()}};
+  document.querySelectorAll('#tabBar button').forEach(b=>b.onclick=()=>switchTab(b.dataset.t));
 }
 
-keyInput.addEventListener('keydown', e => {
-  if (e.key === 'Enter') verifyKey();
-});
-
-document.getElementById('keyBtn').addEventListener('click', verifyKey);
-
-async function verifyKey() {
-  const key = keyInput.value.trim();
-  if (!key) return;
-  const resp = await fetch(`/api/chat?key=${encodeURIComponent(key)}`);
-  if (resp.ok) {
-    CHAT_KEY = key;
-    localStorage.setItem('reasonix_chat_key', CHAT_KEY);
-    showMain();
-  } else {
-    keyError.style.display = 'block';
-    keyInput.value = '';
-  }
+async function updateStatus(){
+  try{
+    const s=await(await fetch('/api/status')).json();
+    $('statusDot').className=s.active?'ok':s.errors>0?'err':'idle';
+    $('statusText').textContent=s.active?s.task:s.lastComplete||'空闲';
+  }catch{$('statusDot').className='err';$('statusText').textContent='离线'}
 }
 
-function showMain() {
-  keyPage.style.display = 'none';
-  mainApp.style.display = 'flex';
-  init();
+function switchTab(t){
+  document.querySelectorAll('#tabBar button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  $('msgList').style.display=t==='chat'?'flex':'none';
+  $('inputArea').classList.toggle('hide',t!=='chat');
+  $('inspireBox').classList.toggle('on',t==='inspire');
 }
 
-// ============ 初始化 ============
-async function init() {
-  await loadMessages();
-  await updateStatus();
-  startPolling();
-  setInterval(updateStatus, 10000); // 状态每10s刷新
-  document.getElementById('msgInput').focus();
-
-  // 输入框自动调整高度
-  const input = document.getElementById('msgInput');
-  input.addEventListener('input', () => {
-    input.style.height = 'auto';
-    input.style.height = Math.min(input.scrollHeight, 120) + 'px';
-    document.getElementById('sendBtn').disabled = !input.value.trim() && !pendingImage;
-  });
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-  });
+async function loadMsgs(since){
+  try{
+    const r=await fetch('/api/chat?key='+encodeURIComponent(KEY)+(since?'&since='+since:''));
+    const msgs=await r.json();
+    if(since){for(const m of msgs)addMsg(m)}else{$('msgList').innerHTML='';for(const m of msgs)addMsg(m)}
+    if(msgs.length)lastId=msgs[msgs.length-1].id;
+  }catch(e){}
 }
 
-// ============ 状态栏 ============
-async function updateStatus() {
-  try {
-    const resp = await fetch('/api/status');
-    const s = await resp.json();
-    const dot = document.getElementById('statusDot');
-    const text = document.getElementById('statusText');
-    const time = document.getElementById('statusTime');
-    const detail = document.getElementById('statusDetail');
-
-    dot.className = s.active ? 'active' : s.errors > 0 ? 'error' : 'idle';
-
-    if (s.active) {
-      text.textContent = s.task || '工作中';
-      if (s.errors > 0) text.textContent += ` (${s.errors}个错误)`;
-    } else {
-      text.textContent = s.lastComplete ? `空闲 · 上次：${s.lastComplete}` : '空闲';
-    }
-
-    const d = new Date(s.updated);
-    time.textContent = d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-
-    detail.innerHTML = s.detail ? `📋 ${s.detail}<br>🕐 开始: ${s.started || '-'}<br>❌ 错误: ${s.errors}` : '';
-  } catch {
-    document.getElementById('statusDot').className = 'error';
-    document.getElementById('statusText').textContent = '服务器离线';
-  }
+function addMsg(m){
+  const d=document.createElement('div');
+  d.className='msg '+(m.from==='master'?'me':'rx');
+  const b=document.createElement('div');b.className='bubble';
+  if(m.image){const img=document.createElement('img');img.src=m.image;img.onclick=()=>{const w=window.open('');w.document.write('<img src="'+m.image+'" style="max-width:100%">')};b.appendChild(img)}
+  else b.textContent=m.content||'';
+  const t=document.createElement('div');t.className='time';
+  t.textContent=new Date(m.createdAt).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
+  d.appendChild(b);d.appendChild(t);
+  $('msgList').appendChild(d);
+  $('msgList').scrollTop=$('msgList').scrollHeight;
 }
 
-function toggleStatus() {
-  document.getElementById('statusBar').classList.toggle('expanded');
+async function sendMsg(){
+  const txt=$('msgInput').value.trim();
+  if(!txt&&!pendingImg)return;
+  const body={mode:'urgent',content:txt,image:pendingImg};
+  addMsg({id:'',from:'master',content:txt||'',image:pendingImg,createdAt:new Date().toISOString()});
+  $('msgInput').value='';$('msgInput').style.height='auto';clearImg();$('sendBtn').disabled=true;
+  try{await fetch('/api/chat?key='+encodeURIComponent(KEY),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})}catch(e){}
 }
 
-// ============ Tab 切换 ============
-function switchTab(tab) {
-  currentTab = tab;
-  document.querySelectorAll('#tabBar button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-  document.getElementById('chatArea').classList.toggle('hidden', tab !== 'chat');
-  document.getElementById('inputArea').style.display = tab === 'chat' ? 'flex' : 'none';
-  document.getElementById('inspireArea').classList.toggle('show', tab === 'inspire');
-  document.getElementById('quickInspire').classList.toggle('show', tab === 'chat');
-  // 切回chat时滚动到底部
-  if (tab === 'chat') {
-    setTimeout(() => { const c=document.getElementById('msgContainer'); if(c)c.scrollTop=c.scrollHeight; }, 100);
-  }
+async function sendInspire(){
+  const txt=$('inspireInput').value.trim();if(!txt)return;
+  $('inspireSend').textContent='保存中...';$('inspireSend').disabled=true;
+  try{await fetch('/api/inspire?key='+encodeURIComponent(KEY),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:txt})});
+    $('inspireInput').value='';$('inspireSend').textContent='已保存';setTimeout(()=>{$('inspireSend').textContent='保存灵感';$('inspireSend').disabled=false},1500)}
+  catch(e){$('inspireSend').textContent='失败重试';$('inspireSend').disabled=false}
 }
+$('inspireSend').onclick=sendInspire;
 
-function quickInspire() {
-  switchTab('inspire');
-  document.getElementById('inspireInput').focus();
-}
+function pickImg(f){const file=f.files[0];if(!file)return;const r=new FileReader();r.onload=e=>{const img=new Image();img.onload=()=>{const c=document.createElement('canvas');let w=img.width,h=img.height;if(w>800){h=h*800/w;w=800}c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);pendingImg=c.toDataURL('image/jpeg',.8);$('imgThumb').src=pendingImg;$('imgPreview').classList.add('on');$('sendBtn').disabled=false};img.src=e.target.result};r.readAsDataURL(file)}
+function clearImg(){pendingImg=null;$('imgPreview').classList.remove('on');$('fileInput').value=''}
 
-// ============ 消息加载 ============
-async function loadMessages(since) {
-  try {
-    let url = `/api/chat?key=${encodeURIComponent(CHAT_KEY)}`;
-    if (since) url += `&since=${encodeURIComponent(since)}`;
-    const resp = await fetch(url);
-    const msgs = await resp.json();
-
-    if (since) {
-      // 增量追加
-      for (const m of msgs) appendMessage(m);
-    } else {
-      // 初始加载
-      document.getElementById('msgContainer').innerHTML = '';
-      for (const m of msgs) appendMessage(m);
-    }
-
-    // 更新 lastMsgId
-    if (msgs.length > 0) lastMsgId = msgs[msgs.length - 1].id;
-
-    // 检测未读 urgent
-    const newUrgent = msgs.filter(m => m.from === 'reasonix' && m.mode === 'urgent' && !m.read);
-    if (newUrgent.length > 0 && since) {
-      const last = newUrgent[newUrgent.length - 1];
-      showToast(last.content);
-    }
-  } catch (e) {
-    console.error('加载消息失败:', e);
-  }
-}
-
-function appendMessage(m) {
-  const container = document.getElementById('msgContainer');
-  const row = document.createElement('div');
-  row.className = `msg-row ${m.from}`;
-
-  const bubble = document.createElement('div');
-  bubble.className = 'msg-bubble';
-
-  if (m.type === 'image' && m.image) {
-    const img = document.createElement('img');
-    img.className = 'msg-image';
-    img.src = m.image;
-    img.loading = 'lazy';
-    img.onclick = () => {
-      document.getElementById('imageFullImg').src = m.image;
-      document.getElementById('imageFull').style.display = 'flex';
-    };
-    bubble.appendChild(img);
-  } else {
-    bubble.textContent = m.content || '';
-  }
-
-  const meta = document.createElement('div');
-  meta.className = 'msg-meta';
-  const d = new Date(m.createdAt);
-  meta.textContent = `${m.from === 'master' ? '主人' : 'Reasonix'} · ${d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`;
-
-  row.appendChild(bubble);
-  row.appendChild(meta);
-  container.appendChild(row);
-
-  // 滚动到底部
-  container.scrollTop = container.scrollHeight;
-}
-
-// ============ 发送消息 ============
-async function sendMessage() {
-  const input = document.getElementById('msgInput');
-  const content = input.value.trim();
-  if (!content && !pendingImage) return;
-
-  const body = { mode: 'urgent', content, image: pendingImage };
-
-  // 乐观渲染
-  const optimistic = {
-    id: 'opt-' + Date.now(),
-    from: 'master', mode: 'urgent',
-    type: pendingImage ? 'image' : 'text',
-    content, image: pendingImage,
-    createdAt: new Date().toISOString()
-  };
-  appendMessage(optimistic);
-
-  // 清空
-  input.value = '';
-  input.style.height = 'auto';
-  clearImage();
-  document.getElementById('sendBtn').disabled = true;
-
-  try {
-    const resp = await fetch(`/api/chat?key=${encodeURIComponent(CHAT_KEY)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    if (!resp.ok) throw new Error('发送失败');
-  } catch (e) {
-    // 标记失败
-    const last = document.getElementById('msgContainer').lastElementChild;
-    if (last) last.querySelector('.msg-bubble').style.opacity = '0.5';
-    console.error('发送失败:', e);
-  }
-
-  input.focus();
-}
-
-// ============ 发送灵感 ============
-async function sendInspire() {
-  const input = document.getElementById('inspireInput');
-  const content = input.value.trim();
-  if (!content) return;
-
-  const btn = document.getElementById('inspireSendBtn');
-  btn.disabled = true;
-  btn.textContent = '保存中...';
-
-  try {
-    await fetch(`/api/inspire?key=${encodeURIComponent(CHAT_KEY)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content, image: pendingInspireImage })
-    });
-    input.value = '';
-    clearInspireImage();
-    btn.textContent = '✅ 已保存';
-    setTimeout(() => { btn.textContent = '保存灵感'; btn.disabled = false; }, 1500);
-  } catch (e) {
-    btn.textContent = '❌ 失败，重试';
-    btn.disabled = false;
-  }
-}
-
-// ============ 图片处理 ============
-function handleImage(input) {
-  const file = input.files[0];
-  if (!file) return;
-  resizeImage(file, 1200, (base64) => {
-    pendingImage = base64;
-    const preview = document.getElementById('imgPreview');
-    const thumb = document.getElementById('imgThumb');
-    thumb.src = base64;
-    preview.classList.add('show');
-    document.getElementById('sendBtn').disabled = false;
-  });
-}
-
-function clearImage() {
-  pendingImage = null;
-  document.getElementById('imgPreview').classList.remove('show');
-  document.getElementById('fileInput').value = '';
-}
-
-function handleInspireImage(input) {
-  const file = input.files[0];
-  if (!file) return;
-  resizeImage(file, 1200, (base64) => {
-    pendingInspireImage = base64;
-    document.getElementById('inspireImgThumb').src = base64;
-    document.getElementById('inspireImgPreview').style.display = 'flex';
-  });
-}
-
-function clearInspireImage() {
-  pendingInspireImage = null;
-  document.getElementById('inspireImgPreview').style.display = 'none';
-  document.getElementById('fileInput2').value = '';
-}
-
-function resizeImage(file, maxSize, callback) {
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const img = new Image();
-    img.onload = function() {
-      const canvas = document.createElement('canvas');
-      let w = img.width, h = img.height;
-      if (w > maxSize) { h = h * maxSize / w; w = maxSize; }
-      if (h > maxSize) { w = w * maxSize / h; h = maxSize; }
-      canvas.width = w; canvas.height = h;
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      callback(canvas.toDataURL('image/jpeg', 0.85));
-    };
-    img.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
-}
-
-// ============ 轮询 ============
-function startPolling() {
-  pollingTimer = setInterval(async () => {
-    if (currentTab === 'chat' && lastMsgId) {
-      await loadMessages(lastMsgId);
-    }
-  }, 15000);
-}
-
-// ============ Toast ============
-function showToast(msg) {
-  document.getElementById('toastBody').textContent = msg;
-  document.getElementById('toast').classList.add('show');
-  // 3秒后自动消失
-  setTimeout(dismissToast, 5000);
-}
-
-function dismissToast() {
-  document.getElementById('toast').classList.remove('show');
-}
-
-// ============ 页面可见性变化 ============
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && lastMsgId) {
-    loadMessages(lastMsgId);
-  }
-});
-
-// 注册 Service Worker
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').catch(() => {});
-}
+async function poll(){if(lastId)await loadMsgs(lastId)}
 </script>
 </body>
 </html>
