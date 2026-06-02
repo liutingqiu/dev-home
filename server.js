@@ -642,6 +642,12 @@ route('GET', '/api/blog-list', (req, res) => {
 });
 
 // 触发远程部署（先回OK，后台执行避免重启切断连接）
+// 重启服务器（仅在server.js更新时需要）
+route('POST', '/api/restart-server', (req, res) => {
+  send(res, 200, { ok: true, msg: 'restarting...' });
+  setTimeout(() => process.exit(0), 500);
+});
+
 route('POST', '/api/trigger-deploy', (req, res) => {
   send(res, 200, { ok: true, msg: 'deploy started' });
   const { exec } = require('child_process');

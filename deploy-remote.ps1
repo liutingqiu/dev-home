@@ -49,10 +49,6 @@ dl2 "scripts/sync-status.js"
 dl2 "scripts/inspire-analyze.js"
 dl2 "data/sources.json"
 
-# restart
-$p = Get-Process node -ErrorAction SilentlyContinue
-if ($p) { $p | Stop-Process -Force; Start-Sleep 1 }
-Set-Location $www
-$env:PORT = 3458
-Start-Process node -ArgumentList "server.js" -NoNewWindow
-Write-Host "Done. Server restarted."
+# 只更新文件，不重启（静态文件即时生效，server.js极少变动）
+# 如需重启server.js：单独调用 /api/restart-server
+Write-Host "Done. Files updated (no restart)."
