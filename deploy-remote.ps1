@@ -27,6 +27,28 @@ Write-Host "Deploy: GitHub -> C:\www"
 # daily
 @("daily/index.html","daily/2026-06-01.html","daily/2026-06-02.html") | % { dl $_ }
 
+# portfolio files (from matrix repo)
+$matrix = "https://raw.githubusercontent.com/liutingqiu/matrix/master"
+function dl2($f) {
+    $url = "$matrix/$f"
+    $dest = "C:\portfolio\$f"
+    $dir = Split-Path $dest -Parent
+    if (-not (Test-Path $dir)) { mkdir $dir -Force | Out-Null }
+    try {
+        Invoke-WebRequest -Uri $url -OutFile $dest -UseBasicParsing -TimeoutSec 30
+        Write-Host "  OK  portfolio/$f"
+    } catch {
+        Write-Host "  SKIP portfolio/$f"
+    }
+}
+dl2 "daily-tasks.bat"
+dl2 "scripts/aggregate.js"
+dl2 "scripts/daily-build.js"
+dl2 "scripts/devto-publish.js"
+dl2 "scripts/sync-status.js"
+dl2 "scripts/inspire-analyze.js"
+dl2 "data/sources.json"
+
 # restart
 $p = Get-Process node -ErrorAction SilentlyContinue
 if ($p) { $p | Stop-Process -Force; Start-Sleep 1 }
