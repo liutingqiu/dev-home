@@ -606,6 +606,28 @@ route('POST', '/api/reply', async (req, res) => {
   send(res, 200, { success: true, id: msg.id });
 });
 
+// ============ 访问统计 ============
+const STATS_FILE = path.join(DATA_DIR, 'stats.json');
+function readStats() { try { return JSON.parse(fs.readFileSync(STATS_FILE, 'utf-8')); } catch { return { pages: {}, total: 0, days: {} }; } }
+function writeStats(s) { fs.writeFileSync(STATS_FILE + '.tmp', JSON.stringify(s, null, 2), 'utf-8'); fs.renameSync(STATS_FILE + '.tmp', STATS_FILE); }
+
+route('POST', '/api/track', async (req, res) => {
+  const data = await readBody(req);
+  if (data.__error) { send(res, 400, {}); return; }
+  const stats = readStats();
+  const page = (data.page || '/').slice(0, 100);
+  stats.total = (stats.total || 0) + 1;
+  stats.pages[page] = (stats.pages[page] || 0) + 1;
+  const today = new Date().toISOString().slice(0, 10);
+  stats.days[today] = (stats.days[today] || 0) + 1;
+  writeStats(stats);
+  send(res, 200, { ok: true });
+});
+
+route('GET', '/api/stats', (req, res) => {
+  send(res, 200, readStats());
+});
+
 route('GET', '/api/crawler-state', (req, res) => {
   const stateFile = path.join(ROOT, '..', 'portfolio', 'data', 'crawler-state.json');
   try { send(res, 200, JSON.parse(fs.readFileSync(stateFile, 'utf-8'))); }
