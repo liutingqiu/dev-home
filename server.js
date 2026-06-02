@@ -641,6 +641,17 @@ route('GET', '/api/blog-list', (req, res) => {
   } catch { send(res, 200, 0); }
 });
 
+// 触发远程部署
+route('POST', '/api/trigger-deploy', (req, res) => {
+  const { execSync } = require('child_process');
+  try {
+    const out = execSync('powershell -File deploy-remote.ps1', { cwd: ROOT, encoding: 'utf8', timeout: 60000 });
+    send(res, 200, { ok: true, output: out });
+  } catch (e) {
+    send(res, 500, { error: e.message });
+  }
+});
+
 route('GET', '/api/stats', (req, res) => {
   send(res, 200, readStats());
 });
