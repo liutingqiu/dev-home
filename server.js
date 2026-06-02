@@ -137,6 +137,7 @@ function send(res, code, data, ct) {
   res.writeHead(code, {
     'Content-Type': ct || 'application/json; charset=utf-8',
     'Content-Length': Buffer.byteLength(body),
+    'Access-Control-Allow-Origin': '*',
     ...SECURITY_HEADERS
   });
   res.end(body);
@@ -661,7 +662,23 @@ route('GET', '/api/status', (req, res) => {
 });
 
 // ============ 路由分发 ============
+// CORS preflight
+function handleCORS(req, res) {
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400'
+    });
+    res.end();
+    return true;
+  }
+  return false;
+}
+
 async function handleAPI(req, res) {
+  if (handleCORS(req, res)) return true;
   const ip = req.socket.remoteAddress || 'unknown';
   if (!checkRate(ip)) { send(res, 429, { error: 'Too many requests' }); return true; }
 
