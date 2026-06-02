@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>爬虫状态 · Reasonix</title>
+<meta http-equiv="refresh" content="30">
+<style>
+:root{--bg:#0A0A0A;--bg-card:#141414;--text:#E8E8E8;--text-dim:#888;--green:#4A9;--red:#E44;--yellow:#DA4}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;padding:20px;max-width:600px;margin:0 auto}
+h1{text-align:center;margin:20px 0 30px;font-size:24px}
+.source{display:flex;align-items:center;padding:14px 16px;margin-bottom:8px;background:var(--bg-card);border-radius:10px;gap:12px}
+.source-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.source-dot.ok{background:var(--green);box-shadow:0 0 8px var(--green)}
+.source-dot.err{background:var(--red);box-shadow:0 0 8px var(--red)}
+.source-dot.warn{background:var(--yellow)}
+.source-info{flex:1}
+.source-name{font-size:15px;margin-bottom:2px}
+.source-meta{font-size:12px;color:var(--text-dim)}
+.source-count{font-size:18px;font-weight:700}
+.source-count.ok{color:var(--green)}
+.source-count.err{color:var(--red)}
+.updated{text-align:center;color:var(--text-dim);font-size:12px;margin-top:24px}
+</style>
+</head>
+<body>
+<h1>🕷️ 爬虫状态</h1>
+<div id="sources"></div>
+<div class="updated" id="updated"></div>
+<script>
+'use strict';
+(async()=>{
+  try{
+    const state = await fetch('/api/status').then(r=>r.json());
+    const resp = await fetch('/api/crawler-state');
+    let crawler = null;
+    try{ crawler = await resp.json(); } catch {}
+
+    const names = { github:'GitHub Trending', hackernews:'Hacker News', v2ex:'V2EX', juejin:'掘金', zhihu:'知乎热榜', reddit:'Reddit', producthunt:'ProductHunt' };
+    const html = [];
+    if (crawler && crawler.sources) {
+      for (const [id, s] of Object.entries(crawler.sources)) {
+        const ok = s.lastSuccess && s.consecutiveErrors === 0;
+        const hasData = s.lastCount > 0;
+        const cls = ok && hasData ? 'ok' : ok ? 'warn' : 'err';
+        const ago = Math.round((Date.now() - s.lastAttempt) / 60000);
+        html.push(`<div class="source">
+          <div class="source-dot ${cls}"></div>
+          <div class="source-info">
+            <div class="source-name">${names[id]||id}</div>
+            <div class="source-meta">${s.consecutiveErrors > 0 ? s.consecutiveErrors+'次失败 · ' : ''}${ago}分钟前 · ${s.lastError||'正常'}</div>
+          </div>
+          <div class="source-count ${cls}">${s.lastCount||0}条</div>
+        </div>`);
+      }
+    }
+    document.getElementById('sources').innerHTML = html.join('');
+    const d = new Date();
+    const sysOk = state.active ? `🟢 ${state.task}` : (state.errors>0 ? `🔴 ${state.errors}个错误` : '⚪ 空闲');
+    document.getElementById('updated').textContent = `系统: ${sysOk} · 更新于 ${d.toLocaleTimeString('zh-CN')}`;
+  }catch(e){ document.getElementById('sources').innerHTML = '<p style="color:var(--red)">加载失败</p>'; }
+})();
+</script>
+</body>
+</html>

@@ -606,6 +606,12 @@ route('POST', '/api/reply', async (req, res) => {
   send(res, 200, { success: true, id: msg.id });
 });
 
+route('GET', '/api/crawler-state', (req, res) => {
+  const stateFile = path.join(ROOT, '..', 'portfolio', 'data', 'crawler-state.json');
+  try { send(res, 200, JSON.parse(fs.readFileSync(stateFile, 'utf-8'))); }
+  catch { send(res, 200, {}); }
+});
+
 route('GET', '/api/status', (req, res) => {
   // 读取 portfolio 的状态文件
   const statusFile = path.join(ROOT, '..', 'portfolio', 'data', 'status.json');
