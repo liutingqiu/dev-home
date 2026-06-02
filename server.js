@@ -624,6 +624,22 @@ route('POST', '/api/track', async (req, res) => {
   send(res, 200, { ok: true });
 });
 
+route('GET', '/api/daily-list', (req, res) => {
+  try {
+    const dir = path.join(ROOT, 'daily');
+    const files = fs.readdirSync(dir).filter(f => f.endsWith('.html') && f !== 'index.html');
+    send(res, 200, files.length);
+  } catch { send(res, 200, 0); }
+});
+
+route('GET', '/api/blog-list', (req, res) => {
+  try {
+    const dir = path.join(ROOT, 'blog');
+    const files = fs.readdirSync(dir).filter(f => f.endsWith('.html') && f !== 'index.html');
+    send(res, 200, files.length);
+  } catch { send(res, 200, 0); }
+});
+
 route('GET', '/api/stats', (req, res) => {
   send(res, 200, readStats());
 });

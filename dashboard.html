@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Reasonix 数据终端</title>
+<meta http-equiv="refresh" content="30">
+<style>
+:root{--bg:#0D1117;--card:#161B22;--border:#30363D;--text:#E6EDF3;--dim:#8B949E;--green:#3FB950;--red:#F85149;--yellow:#D29922;--blue:#58A6FF}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Cascadia Code','Fira Code',Consolas,monospace;padding:24px;min-height:100vh}
+.container{max-width:1200px;margin:0 auto}
+h1{font-size:22px;color:var(--green);margin-bottom:6px}
+.subtitle{color:var(--dim);font-size:12px;margin-bottom:24px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(350px,1fr));gap:16px}
+.panel{border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.panel-header{padding:10px 16px;background:var(--card);border-bottom:1px solid var(--border);font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.panel-body{padding:12px 16px;font-size:12px;line-height:1.8}
+.stat-row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(48,54,61,.5)}
+.stat-label{color:var(--dim)}
+.stat-value{font-weight:600}
+.c-green{color:var(--green)}.c-red{color:var(--red)}.c-yellow{color:var(--yellow)}.c-blue{color:var(--blue)}
+.dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:6px}
+.dot-ok{background:var(--green);box-shadow:0 0 6px var(--green)}
+.dot-err{background:var(--red);box-shadow:0 0 6px var(--red)}
+.dot-warn{background:var(--yellow)}
+.progress-bar{height:4px;background:var(--border);border-radius:2px;margin-top:4px;overflow:hidden}
+.progress-fill{height:100%;border-radius:2px;transition:width .5s}
+.footer{text-align:center;color:var(--dim);font-size:11px;margin-top:30px;padding-top:16px;border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>⬡ Reasonix Matrix</h1>
+<div class="subtitle">数据终端 · 全链路实时监控</div>
+<div class="grid" id="grid"></div>
+<div class="footer" id="footer"></div>
+</div>
+<script>
+'use strict';
+const API = 'http://121.41.95.44:3458';
+
+async function load(name, url) {
+  try { const r = await fetch(url); return r.ok ? await r.json() : null; }
+  catch { return null; }
+}
+
+function panel(title, color, rows) {
+  const body = rows.map(([label, value, cls]) => 
+    `<div class="stat-row"><span class="stat-label">${label}</span><span class="stat-value ${cls||''}">${value}</span></div>`
+  ).join('');
+  return `<div class="panel"><div class="panel-header"><span style="color:${color}">${title}</span></div><div class="panel-body">${body}</div></div>`;
+}
+
+(async() => {
+  const [status, crawler, stats, dailyFiles, blogFiles] = await Promise.all([
+    load('status', API+'/api/status'),
+    load('crawler', API+'/api/crawler-state'),
+    load('stats', API+'/api/stats'),
+    load('daily', API+'/api/daily-list'),
+    load('blog', API+'/api/blog-list')
+  ]);
+
+  const sourceNames = {github:'GitHub',hackernews:'HN',v2ex:'V2EX',juejin:'掘金',zhihu:'知乎',reddit:'Reddit',producthunt:'PH'};
+  const crawlerRows = [];
+  let okCount = 0, totalSources = 0;
+  if (crawler && crawler.sources) {
+    for (const [id, s] of Object.entries(crawler.sources)) {
+      totalSources++;
+      const ok = s.lastSuccess && s.consecutiveErrors === 0 && s.lastCount > 0;
+      const warn = s.lastSuccess && s.lastCount === 0;
+      if (ok) okCount++;
+      const ago = Math.round((Date.now() - s.lastAttempt) / 60000);
+      const status = ok ? `<span class="dot dot-ok"></span>${s.lastCount}条` : warn ? `<span class="dot dot-warn"></span>0条` : `<span class="dot dot-err"></span>${s.lastError||'失败'}`;
+      crawlerRows.push([sourceNames[id]||id, `${status} · ${ago}分钟前`, ok?'c-green':warn?'c-yellow':'c-red']);
+    }
+  }
+
+  const sysStatus = status ? (status.active ? `<span class="c-green">🟢 ${status.task}</span>` : '<span class="c-blue">⚪ 空闲</span>') : '<span class="c-red">离线</span>';
+
+  const html = [
+    panel('🖥 系统', '#58A6FF', [
+      ['状态', sysStatus],
+      ['上次任务', status?.lastComplete || '-'],
+      ['爬虫健康', `${okCount}/${totalSources} 源正常`],
+      ['计划任务', 'aggregate(30min) + daily(08:00)'],
+      ['部署', 'dev-home GitHub + 服务器'],
+    ]),
+    panel('🕷 爬虫', '#3FB950', crawlerRows),
+    panel('📊 访问统计', '#D29922', [
+      ['总访问量', (stats?.total||0).toLocaleString(), 'c-yellow'],
+      ['覆盖页面', `${Object.keys(stats?.pages||{}).length} 个`],
+      ['今日', (stats?.days?.[new Date().toISOString().slice(0,10)]||0).toLocaleString()],
+      ['最热页面', Object.entries(stats?.pages||{}).sort((a,b)=>b[1]-a[1])[0]?.[0] || '-'],
+    ]),
+    panel('📝 内容', '#58A6FF', [
+      ['博客文章', `${blogFiles||0} 篇`, 'c-blue'],
+      ['日报', `${dailyFiles||0} 期`, 'c-blue'],
+      ['Dev.to 分发', '5 篇已发布', 'c-green'],
+      ['知乎', '已放弃(反爬)', 'c-red'],
+      ['灵感池', '自动分析就绪', 'c-green'],
+    ]),
+    panel('📡 通信', '#3FB950', [
+      ['Chat PWA', '双向打通', 'c-green'],
+      ['邮件通知', 'QQ邮箱 · 每日08:00', 'c-green'],
+      ['GitHub 备份', 'matrix + dev-home', 'c-green'],
+      ['服务器', '阿里云 WinServer 2022', 'c-green'],
+    ]),
+  ].join('');
+
+  document.getElementById('grid').innerHTML = html;
+  document.getElementById('footer').textContent = `Reasonix Matrix · 更新于 ${new Date().toLocaleString('zh-CN')} · 每30秒自动刷新`;
+})();
+</script>
+</body>
+</html>
