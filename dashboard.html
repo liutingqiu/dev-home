@@ -6,110 +6,188 @@
 <title>Reasonix 数据终端</title>
 <meta http-equiv="refresh" content="30">
 <style>
-:root{--bg:#0D1117;--card:#161B22;--border:#30363D;--text:#E6EDF3;--dim:#8B949E;--green:#3FB950;--red:#F85149;--yellow:#D29922;--blue:#58A6FF}
+:root{--bg:#0D1117;--card:#161B22;--border:#30363D;--text:#E6EDF3;--dim:#8B949E;--green:#3FB950;--red:#F85149;--yellow:#D29922;--blue:#58A6FF;--purple:#BC8CFF}
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--text);font-family:'Cascadia Code','Fira Code',Consolas,monospace;padding:24px;min-height:100vh}
-.container{max-width:1200px;margin:0 auto}
-h1{font-size:22px;color:var(--green);margin-bottom:6px}
-.subtitle{color:var(--dim);font-size:12px;margin-bottom:24px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(350px,1fr));gap:16px}
-.panel{border:1px solid var(--border);border-radius:8px;overflow:hidden}
-.panel-header{padding:10px 16px;background:var(--card);border-bottom:1px solid var(--border);font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
-.panel-body{padding:12px 16px;font-size:12px;line-height:1.8}
-.stat-row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(48,54,61,.5)}
-.stat-label{color:var(--dim)}
-.stat-value{font-weight:600}
-.c-green{color:var(--green)}.c-red{color:var(--red)}.c-yellow{color:var(--yellow)}.c-blue{color:var(--blue)}
-.dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:6px}
-.dot-ok{background:var(--green);box-shadow:0 0 6px var(--green)}
-.dot-err{background:var(--red);box-shadow:0 0 6px var(--red)}
-.dot-warn{background:var(--yellow)}
-.progress-bar{height:4px;background:var(--border);border-radius:2px;margin-top:4px;overflow:hidden}
-.progress-fill{height:100%;border-radius:2px;transition:width .5s}
-.footer{text-align:center;color:var(--dim);font-size:11px;margin-top:30px;padding-top:16px;border-top:1px solid var(--border)}
+body{background:var(--bg);color:var(--text);font-family:'Cascadia Code','Fira Code',Consolas,monospace;padding:20px;min-height:100vh}
+.container{max-width:1400px;margin:0 auto}
+.header{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+h1{font-size:24px;color:var(--green)}
+.badge{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--card);border:1px solid var(--border);color:var(--dim)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:14px;margin-top:16px}
+.grid-2{grid-column:span 2}
+.panel{border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--card)}
+.panel-h{padding:10px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.panel-b{padding:8px 0;font-size:12px;line-height:1.7}
+.row{display:flex;justify-content:space-between;padding:5px 16px;border-bottom:1px solid rgba(48,54,61,.3)}
+.row:last-child{border-bottom:none}
+.row:hover{background:rgba(88,166,255,.04)}
+.l{color:var(--dim)}.v{font-weight:600;text-align:right}
+.g{color:var(--green)}.r{color:var(--red)}.y{color:var(--yellow)}.b{color:var(--blue)}.p{color:var(--purple)}
+.bar-wrap{flex:1;height:4px;background:var(--border);border-radius:2px;margin-left:10px;overflow:hidden}
+.bar-fill{height:100%;border-radius:2px;transition:width .5s}
+.section-divider{grid-column:1/-1;padding:8px 0 0;color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:2px}
+.num{font-size:28px;font-weight:700}
+.footer{text-align:center;color:var(--dim);font-size:11px;margin-top:24px;padding-top:14px;border-top:1px solid var(--border)}
+.refresh{color:var(--green);cursor:pointer}
+.raw-data{font-size:11px;color:var(--dim);max-height:200px;overflow-y:auto;white-space:pre-wrap;font-family:monospace;margin:8px 0}
+.detail-toggle{cursor:pointer;color:var(--blue);font-size:11px}
+.detail-content{display:none;padding:8px 16px;background:rgba(0,0,0,.3);font-size:11px}
+.detail-content.show{display:block}
 </style>
 </head>
 <body>
 <div class="container">
-<h1>⬡ Reasonix Matrix</h1>
-<div class="subtitle">数据终端 · 全链路实时监控</div>
-<div class="grid" id="grid"></div>
-<div class="footer" id="footer"></div>
+<div class="header">
+  <h1>⬡ Reasonix Matrix</h1>
+  <span class="badge">v2.0</span>
+  <span style="flex:1"></span>
+  <span style="color:var(--dim);font-size:11px" id="clock"></span>
 </div>
+
+<div class="grid" id="grid"></div>
+<div class="footer">
+  Reasonix Matrix · Auto-refresh 30s · <span class="refresh" onclick="location.reload()">Manual Refresh</span>
+</div>
+</div>
+
 <script>
 'use strict';
-const API = '';
 
-async function load(name, url) {
-  try { const r = await fetch(url); return r.ok ? await r.json() : null; }
-  catch { return null; }
+function t(s){return new Date(s).toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}
+function n(v){return v==null?'-':typeof v==='number'?v.toLocaleString():v}
+function ago(ms){const s=Math.round((Date.now()-ms)/1000);if(s<60)return s+'秒前';if(s<3600)return Math.round(s/60)+'分钟前';return Math.round(s/3600)+'小时前'}
+async function f(url){try{const r=await fetch(url);return r.ok?r.json():null}catch{return null}}
+
+function panel(title,color,badge,rows){
+  const b=badge?`<span style="font-size:10px;color:${color};opacity:.6">${badge}</span>`:'';
+  const r=rows.map(([l,v,c,d])=>{
+    const val=d&&v?`<span class="detail-toggle" onclick="this.nextElementSibling.classList.toggle('show')">${v}</span><div class="detail-content">${d}</div>`:v;
+    return `<div class="row"><span class="l">${l}</span><span class="v ${c||''}">${val}</span></div>`;
+  }).join('');
+  return `<div class="panel"><div class="panel-h"><span style="color:${color}">${title}</span>${b}</div><div class="panel-b">${r}</div></div>`;
 }
 
-function panel(title, color, rows) {
-  const body = rows.map(([label, value, cls]) => 
-    `<div class="stat-row"><span class="stat-label">${label}</span><span class="stat-value ${cls||''}">${value}</span></div>`
-  ).join('');
-  return `<div class="panel"><div class="panel-header"><span style="color:${color}">${title}</span></div><div class="panel-body">${body}</div></div>`;
+function bigNum(title,num,color,sub){
+  return `<div class="panel" style="text-align:center;padding:16px">
+    <div style="font-size:12px;color:var(--dim);margin-bottom:4px">${title}</div>
+    <div class="num" style="color:${color}">${n(num)}</div>
+    ${sub?`<div style="font-size:10px;color:var(--dim);margin-top:4px">${sub}</div>`:''}
+  </div>`;
 }
 
-(async() => {
-  const [status, crawler, stats, dailyFiles, blogFiles] = await Promise.all([
-    load('status', API+'/api/status'),
-    load('crawler', API+'/api/crawler-state'),
-    load('stats', API+'/api/stats'),
-    load('daily', API+'/api/daily-list'),
-    load('blog', API+'/api/blog-list')
+(async()=>{
+  const [status,crawler,stats,chatMsgs]=await Promise.all([
+    f('/api/status'),f('/api/crawler-state'),f('/api/stats'),
+    f('/api/chat?key=50c88c36048ab2ab031e0adefa77673e')
   ]);
 
-  const sourceNames = {github:'GitHub',hackernews:'HN',v2ex:'V2EX',juejin:'掘金',zhihu:'知乎',reddit:'Reddit',producthunt:'PH'};
-  const crawlerRows = [];
-  let okCount = 0, totalSources = 0;
-  if (crawler && crawler.sources) {
-    for (const [id, s] of Object.entries(crawler.sources)) {
-      totalSources++;
-      const ok = s.lastSuccess && s.consecutiveErrors === 0 && s.lastCount > 0;
-      const warn = s.lastSuccess && s.lastCount === 0;
-      if (ok) okCount++;
-      const ago = Math.round((Date.now() - s.lastAttempt) / 60000);
-      const status = ok ? `<span class="dot dot-ok"></span>${s.lastCount}条` : warn ? `<span class="dot dot-warn"></span>0条` : `<span class="dot dot-err"></span>${s.lastError||'失败'}`;
-      crawlerRows.push([sourceNames[id]||id, `${status} · ${ago}分钟前`, ok?'c-green':warn?'c-yellow':'c-red']);
+  const now=Date.now();
+  const names={github:'GitHub Trending',hackernews:'Hacker News',v2ex:'V2EX',juejin:'掘金',zhihu:'知乎热榜',reddit:'Reddit r/programming',producthunt:'ProductHunt'};
+
+  // ==== 爬虫详情 ====
+  let crawlerRows=[],okC=0,totalC=0;
+  if(crawler&&crawler.sources){
+    for(const[id,s]of Object.entries(crawler.sources)){
+      totalC++;
+      const ok=s.lastSuccess&&s.consecutiveErrors===0&&s.lastCount>0;
+      const warn=s.lastSuccess&&s.lastCount===0;
+      if(ok)okC++;
+      const a=ago(s.lastAttempt);
+      let detail='';
+      if(s.lastSuccess)detail+=`最近成功: ${t(s.lastSuccess)} · ${s.lastCount}条\n`;
+      if(s.lastError)detail+=`最近错误: ${s.lastError}\n`;
+      detail+=`连续错误: ${s.consecutiveErrors||0}次\n上次尝试: ${t(s.lastAttempt)}`;
+      const stat=ok?`🟢 ${s.lastCount}条`:warn?'🟡 0条(空)':'🔴 '+((s.lastError||'超时').slice(0,15));
+      crawlerRows.push([names[id]||id,`${stat} · ${a}`,ok?'g':warn?'y':'r',detail]);
     }
   }
 
-  const sysStatus = status ? (status.active ? `<span class="c-green">🟢 ${status.task}</span>` : '<span class="c-blue">⚪ 空闲</span>') : '<span class="c-red">离线</span>';
+  // ==== 访问统计 ====
+  const pages=Object.entries(stats?.pages||{}).sort((a,b)=>b[1]-a[1]);
+  const days=Object.entries(stats?.days||{}).sort((a,b)=>b[0].localeCompare(a[0]));
+  const today=new Date().toISOString().slice(0,10);
+  const todayVisits=stats?.days?.[today]||0;
+  const maxPage=pages[0]?.[1]||1;
 
-  const html = [
-    panel('🖥 系统', '#58A6FF', [
-      ['状态', sysStatus],
-      ['上次任务', status?.lastComplete || '-'],
-      ['爬虫健康', `${okCount}/${totalSources} 源正常`],
-      ['计划任务', 'aggregate(30min) + daily(08:00)'],
-      ['部署', 'dev-home GitHub + 服务器'],
+  const statRows=pages.slice(0,10).map(([p,c])=>{
+    const pct=Math.round(c/(stats?.total||1)*100);
+    const bar=`<span class="bar-wrap"><span class="bar-fill" style="width:${Math.max(c/maxPage*100,2)}%;background:var(--blue)"></span></span>`;
+    return [p||'/',`${n(c)} (${pct}%)`,'b',bar];
+  });
+
+  const dayRows=days.slice(-14).map(([d,c])=>{
+    const isToday=d===today;
+    return [d,`${n(c)} ${isToday?'← 今日':''}`,isToday?'g':''];
+  });
+
+  // ==== 聊天统计 ====
+  const msgs=chatMsgs||[];
+  const masterMsgs=msgs.filter(m=>m.from==='master');
+  const reasonixMsgs=msgs.filter(m=>m.from==='reasonix');
+  const lastMsg=msgs[msgs.length-1];
+
+  const html=[
+    // 概览卡片
+    bigNum('爬虫效率',`${okC}/${totalC}`,'#3FB950','正常源/总源'),
+    bigNum('总访问',stats?.total||0,'#58A6FF','page views'),
+    bigNum('今日访问',todayVisits,'#D29922',today),
+    bigNum('聊天消息',msgs.length,'#BC8CFF',`主人${masterMsgs.length} · 回复${reasonixMsgs.length}`),
+
+    // 爬虫面板
+    panel('🕷 爬虫状态','#3FB950',`${okC}/${totalC} 正常`,crawlerRows),
+
+    // 系统面板
+    panel('🖥 系统信息','#58A6FF','',[
+      ['系统状态',status?.active?`🟢 ${status.task}`:'⚪ 空闲',status?.active?'g':''],
+      ['上次任务',status?.lastComplete||'-'],
+      ['状态更新',status?.updated?t(status.updated):'-'],
+      ['爬虫错误',status?.errors?`${status.errors}个`:'0',''],
+      ['计划任务','aggregate(30min) + daily(08:00)',''],
+      ['上次全轮',crawler?.lastFullRun?t(crawler.lastFullRun):'-'],
+      ['端口服务','3458(主站)','g'],
     ]),
-    panel('🕷 爬虫', '#3FB950', crawlerRows),
-    panel('📊 访问统计', '#D29922', [
-      ['总访问量', (stats?.total||0).toLocaleString(), 'c-yellow'],
-      ['覆盖页面', `${Object.keys(stats?.pages||{}).length} 个`],
-      ['今日', (stats?.days?.[new Date().toISOString().slice(0,10)]||0).toLocaleString()],
-      ['最热页面', Object.entries(stats?.pages||{}).sort((a,b)=>b[1]-a[1])[0]?.[0] || '-'],
+
+    // 访问统计
+    panel('📊 页面访问 TOP10','#58A6FF',`${pages.length}个页面`,statRows),
+    panel('📅 每日趋势 (14天)','#D29922',`${days.length}天`,dayRows),
+
+    // 聊天
+    panel('💬 Chat 消息','#BC8CFF',`${msgs.length}条`,lastMsg?[
+      ['总消息',msgs.length,''],
+      ['主人发送',masterMsgs.length,''],
+      ['Reasonix回复',reasonixMsgs.length,''],
+      ['最近消息',lastMsg.from==='master'?'主人':`Reasonix`,''],
+      ['最近时间',t(lastMsg.createdAt)],
+      ['最近内容',(lastMsg.content||'').slice(0,40)+(lastMsg.content?.length>40?'...':''),''],
+    ]:[]),
+
+    // 内容
+    panel('📝 内容资产','#58A6FF','',[
+      ['博客文章','5篇','b'],
+      ['日报','2期','b'],
+      ['Dev.to 分发','5篇已发布','g'],
+      ['Hashnode','API已付费·放弃','r'],
+      ['知乎','反爬严格·放弃','r'],
+      ['灵感池','自动分析就绪','g'],
     ]),
-    panel('📝 内容', '#58A6FF', [
-      ['博客文章', `${blogFiles||0} 篇`, 'c-blue'],
-      ['日报', `${dailyFiles||0} 期`, 'c-blue'],
-      ['Dev.to 分发', '5 篇已发布', 'c-green'],
-      ['知乎', '已放弃(反爬)', 'c-red'],
-      ['灵感池', '自动分析就绪', 'c-green'],
-    ]),
-    panel('📡 通信', '#3FB950', [
-      ['Chat PWA', '双向打通', 'c-green'],
-      ['邮件通知', 'QQ邮箱 · 每日08:00', 'c-green'],
-      ['GitHub 备份', 'matrix + dev-home', 'c-green'],
-      ['服务器', '阿里云 WinServer 2022', 'c-green'],
+
+    // 底部原始数据
+    panel('🔍 爬虫原始状态','#8B949E','点击查看',[
+      ['爬虫状态文件','data/crawler-state.json','',JSON.stringify(crawler?.sources||{},null,2)],
+      ['系统状态文件','data/status.json','',JSON.stringify(status||{},null,2)],
     ]),
   ].join('');
 
-  document.getElementById('grid').innerHTML = html;
-  document.getElementById('footer').textContent = `Reasonix Matrix · 更新于 ${new Date().toLocaleString('zh-CN')} · 每30秒自动刷新`;
+  document.getElementById('grid').innerHTML=html;
+  document.getElementById('clock').textContent=new Date().toLocaleString('zh-CN');
+
+  // 让 detail toggle 可点击
+  document.querySelectorAll('.detail-toggle').forEach(el=>{
+    el.addEventListener('click',function(e){
+      this.nextElementSibling.classList.toggle('show');
+      e.stopPropagation();
+    });
+  });
 })();
 </script>
 </body>
