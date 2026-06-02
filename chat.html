@@ -23,15 +23,17 @@
   --font: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{height:100%;overflow:hidden;position:fixed;top:0;left:0;right:0;bottom:0}
+html,body{height:100dvh;height:100vh;overflow:hidden;position:fixed;top:0;left:0;right:0;bottom:0}
 body{
-  background:var(--bg);
-  color:var(--text);
-  font-family:var(--font);
+  background:var(--bg);color:var(--text);font-family:var(--font);
   display:flex;flex-direction:column;
   -webkit-tap-highlight-color:transparent;
 }
-#mainApp{flex:1;display:grid;grid-template-rows:auto auto 1fr auto;min-height:0;overflow:hidden}
+#mainApp{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;position:relative}
+#chatArea{display:flex;flex:1;flex-direction:column;min-height:0}
+#chatArea.hidden{display:none}
+#inspireArea{display:none;flex:1;flex-direction:column;min-height:0;overflow-y:auto;padding:16px}
+#inspireArea.show{display:flex}
 
 /* ====== 顶部状态栏 ====== */
 #statusBar{
@@ -250,11 +252,14 @@ body{
 <!-- 快捷灵感按钮 -->
 <button id="quickInspire" onclick="quickInspire()" title="快速灵感">💡</button>
 
-<!-- 聊天消息 -->
-<div id="msgContainer"></div>
+<!-- 聊天消息区 -->
+<div id="chatArea" class="">
+  <div id="msgContainer"></div>
+</div>
 
-<!-- 灵感池输入 -->
-<div id="inspirePanel" style="display:none;flex:1;flex-direction:column;padding:16px;overflow-y:auto">
+<!-- 灵感池区 -->
+<div id="inspireArea" class="">
+  <div id="inspirePanel" style="flex:1;flex-direction:column;">
   <textarea id="inspireInput" placeholder="写下你的灵感...&#10;&#10;我会在空闲时分析并给出方案，结果存档供你随时查阅。"></textarea>
   <div id="inspireImgPreview" style="display:none;align-items:center;gap:8px;margin-bottom:12px">
     <img id="inspireImgThumb" style="width:48px;height:48px;border-radius:8px;object-fit:cover">
@@ -278,6 +283,9 @@ body{
   <textarea id="msgInput" rows="1" placeholder="输入消息..."></textarea>
   <button id="sendBtn" disabled onclick="sendMessage()">发送</button>
 </div>
+
+</div><!-- /inspirePanel -->
+</div><!-- /inspireArea -->
 
 </div><!-- /mainApp -->
 
@@ -412,10 +420,14 @@ function toggleStatus() {
 function switchTab(tab) {
   currentTab = tab;
   document.querySelectorAll('#tabBar button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-  document.getElementById('msgContainer').style.display = tab === 'chat' ? 'flex' : 'none';
+  document.getElementById('chatArea').classList.toggle('hidden', tab !== 'chat');
   document.getElementById('inputArea').style.display = tab === 'chat' ? 'flex' : 'none';
-  document.getElementById('inspirePanel').style.display = tab === 'inspire' ? 'flex' : 'none';
+  document.getElementById('inspireArea').classList.toggle('show', tab === 'inspire');
   document.getElementById('quickInspire').classList.toggle('show', tab === 'chat');
+  // 切回chat时滚动到底部
+  if (tab === 'chat') {
+    setTimeout(() => { const c=document.getElementById('msgContainer'); if(c)c.scrollTop=c.scrollHeight; }, 100);
+  }
 }
 
 function quickInspire() {
