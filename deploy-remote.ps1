@@ -27,6 +27,9 @@ Write-Host "Deploy: GitHub -> C:\www"
 # daily
 @("daily/index.html","daily/2026-06-01.html","daily/2026-06-02.html") | % { dl $_ }
 
+# shop-demo (ATLAS clothing store)
+@("shop-demo/index.html","shop-demo/shop.html","shop-demo/product.html","shop-demo/cart.html","shop-demo/checkout.html","shop-demo/order-success.html","shop-demo/css/style.css","shop-demo/js/data.js","shop-demo/js/cart.js") | % { dl $_ }
+
 # portfolio files (from matrix repo)
 $matrix = "https://raw.githubusercontent.com/liutingqiu/matrix/master"
 function dl2($f) {
