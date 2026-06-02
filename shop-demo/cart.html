@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shopping Cart — ATLAS</title>
+<meta name="description" content="Review your shopping cart at ATLAS. Free shipping on orders over $200.">
+<meta property="og:title" content="Shopping Cart — ATLAS">
+<meta property="og:description" content="Review your ATLAS shopping cart.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="index.html" class="logo">ATLAS</a>
+    <nav class="nav-links">
+      <a href="shop.html">Shop</a>
+      <a href="shop.html?category=dresses">Dresses</a>
+      <a href="shop.html?category=tops">Tops</a>
+      <a href="shop.html?category=bottoms">Bottoms</a>
+      <a href="shop.html?category=outerwear">Outerwear</a>
+    </nav>
+    <div class="header-icons">
+      <a href="cart.html" style="position:relative;font-size:1.2rem;" aria-label="Shopping cart">
+        &#128722; <span class="cart-count"></span>
+      </a>
+    </div>
+  </div>
+</header>
+
+<main class="container" id="cart-main">
+  <h1 style="margin: 32px 0 8px;">Shopping Cart</h1>
+  <div id="cart-content"></div>
+</main>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-col">
+      <h4>About ATLAS</h4>
+      <p>ATLAS is a contemporary womenswear label dedicated to refined essentials.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Customer Care</h4>
+      <a href="#">Shipping & Returns</a>
+      <a href="#">Size Guide</a>
+      <a href="#">Contact Us</a>
+    </div>
+    <div class="footer-col">
+      <h4>Connect</h4>
+      <a href="#">Instagram</a>
+      <a href="#">Pinterest</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>&copy; 2026 ATLAS. All rights reserved.</p>
+  </div>
+</footer>
+
+<script src="js/data.js"></script>
+<script src="js/cart.js"></script>
+<script>
+(() => {
+  'use strict';
+
+  const FREE_SHIPPING = 200;
+
+  function renderCart() {
+    const cart = getCart();
+    const container = document.getElementById('cart-content');
+
+    if (cart.length === 0) {
+      container.innerHTML = `
+        <div class="empty-cart">
+          <h2>Your cart is empty</h2>
+          <p>Looks like you haven't added anything yet.</p>
+          <a href="shop.html" class="btn btn-outline" style="margin-top:20px;display:inline-block;">Continue Shopping</a>
+        </div>`;
+      return;
+    }
+
+    const subtotal = getCartTotal();
+    const shipping = subtotal >= FREE_SHIPPING ? 0 : 12.00;
+    const total = subtotal + shipping;
+    const freeShippingLeft = Math.max(0, FREE_SHIPPING - subtotal);
+
+    container.innerHTML = `
+      <div class="cart-layout">
+        <div class="cart-items">
+          ${cart.map((item, i) => {
+            const p = getProduct(item.productId);
+            if (!p) return '';
+            const lineTotal = p.price * item.quantity;
+            return `
+              <div class="cart-item">
+                <div class="item-image">
+                  <div class="placeholder-img" style="font-size:0.6rem;">${p.name}</div>
+                </div>
+                <div class="item-info">
+                  <div class="item-name">${p.name}</div>
+                  <div class="item-meta">${item.color} / ${item.size}</div>
+                  <div class="item-price">$${p.price.toFixed(2)}</div>
+                  <div class="item-quantity">
+                    <button class="qty-btn" onclick="window.cartUpdateQty(${i}, -1)" aria-label="Decrease quantity">&minus;</button>
+                    <span>${item.quantity}</span>
+                    <button class="qty-btn" onclick="window.cartUpdateQty(${i}, 1)" aria-label="Increase quantity">+</button>
+                  </div>
+                  <span class="remove-btn" onclick="window.cartRemove(${i})">Remove</span>
+                </div>
+                <div class="item-total">$${lineTotal.toFixed(2)}</div>
+              </div>`;
+          }).join('')}
+        </div>
+
+        <div class="cart-summary">
+          <h3>Order Summary</h3>
+          <div class="summary-row">
+            <span>Subtotal</span>
+            <span>$${subtotal.toFixed(2)}</span>
+          </div>
+          <div class="summary-row shipping">
+            <span>Shipping</span>
+            <span>${shipping === 0 ? 'FREE' : '$' + shipping.toFixed(2)}</span>
+          </div>
+          ${freeShippingLeft > 0 ? `
+            <p style="font-size:0.75rem;color:var(--text-light);margin-bottom:12px;">
+              Add $${freeShippingLeft.toFixed(2)} more for free shipping
+            </p>` : ''}
+          <div class="summary-row total">
+            <span>Total</span>
+            <span>$${total.toFixed(2)}</span>
+          </div>
+          <a href="checkout.html" class="btn btn-primary" style="width:100%;margin-top:16px;">Proceed to Checkout</a>
+          <a href="shop.html" class="btn btn-outline" style="width:100%;margin-top:8px;text-align:center;">Continue Shopping</a>
+        </div>
+      </div>`;
+
+    // Expose functions globally for inline onclick
+    window.cartUpdateQty = (i, d) => { updateQuantity(i, d); renderCart(); };
+    window.cartRemove = (i) => { removeFromCart(i); renderCart(); };
+  }
+
+  renderCart();
+})();
+</script>
+
+</body>
+</html>
