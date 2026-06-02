@@ -641,15 +641,14 @@ route('GET', '/api/blog-list', (req, res) => {
   } catch { send(res, 200, 0); }
 });
 
-// 触发远程部署
+// 触发远程部署（先回OK，后台执行避免重启切断连接）
 route('POST', '/api/trigger-deploy', (req, res) => {
-  const { execSync } = require('child_process');
-  try {
-    const out = execSync('powershell -File deploy-remote.ps1', { cwd: ROOT, encoding: 'utf8', timeout: 60000 });
-    send(res, 200, { ok: true, output: out });
-  } catch (e) {
-    send(res, 500, { error: e.message });
-  }
+  send(res, 200, { ok: true, msg: 'deploy started' });
+  const { exec } = require('child_process');
+  exec('powershell -File deploy-remote.ps1', { cwd: ROOT }, (err, stdout, stderr) => {
+    if (err) console.error('Deploy error:', stderr);
+    else console.log('Deploy ok:', stdout.slice(0, 200));
+  });
 });
 
 route('GET', '/api/stats', (req, res) => {
