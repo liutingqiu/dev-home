@@ -101,7 +101,7 @@ section{padding:120px 0}
 .feat-card:hover{transform:translateY(-3px);box-shadow:0 6px 18px rgba(0,0,0,.08)}
 .feat-card strong{font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:4px}
 .feat-card span{font-size:12px;color:var(--text-secondary);line-height:1.5}
-@media(max-width:1024px){.eat-grid{grid-template-columns:repeat(2,1fr);gap:16px}}
+@media(max-width:1024px){.feat-grid{grid-template-columns:repeat(2,1fr);gap:16px}}
 @media(max-width:768px){.feat-grid{grid-template-columns:1fr;gap:10px}.feat-card{height:auto;min-height:80px;padding:16px 18px}.feat-card strong{font-size:15px}.feat-card span{font-size:13px}.feat-card:active{transform:scale(.98);box-shadow:0 2px 8px rgba(0,0,0,.04)}}
 
 /* ============ 合作流程 ============ */
@@ -146,6 +146,20 @@ section{padding:120px 0}
 /* ============ 复制 ============ */
 .copy-toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#333;color:#fff;padding:12px 28px;border-radius:var(--radius-md);font-size:14px;z-index:10000;opacity:0;pointer-events:none;transition:opacity .3s}
 .copy-toast.show{opacity:1}
+
+/* ============ 项目展示 ============ */
+.project-showcase{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
+.project-hero{display:flex;flex-direction:column;padding:36px 28px;border-radius:18px;color:#fff;text-decoration:none;transition:transform .25s,box-shadow .25s;min-height:200px;justify-content:center;gap:10px}
+.project-hero:hover{transform:translateY(-5px);box-shadow:0 12px 32px rgba(0,0,0,.3)}
+.ph-badge{font-size:13px;opacity:.8}
+.project-hero strong{font-size:24px;font-weight:700;color:#fff}
+.project-hero span{font-size:14px;opacity:.75;line-height:1.6}
+.ph-link{font-size:13px;opacity:.9;margin-top:6px;font-weight:600}
+@media(max-width:768px){
+  .project-showcase{grid-template-columns:1fr;gap:14px}
+  .project-hero{padding:28px 22px;min-height:160px}
+  .project-hero strong{font-size:20px}
+}
 
 /* ============ 内容导航卡片 ============ */
 .nav-cards{padding:80px 0}
