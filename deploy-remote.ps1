@@ -19,13 +19,16 @@ function dl($f) {
 Write-Host "Deploy: GitHub -> C:\www"
 
 # core
-@("server.js","chat.html","dashboard.html","dashboard-server.js","manifest.json","sw.js","index.html","stats.html","crawler-status.html","auto-reply.js") | % { dl $_ }
+@("server.js","chat.html","dashboard.html","dashboard-server.js","manifest.json","sw.js","index.html","stats.html","crawler-status.html","auto-reply.js","cases.html","docs.html","data/projects.json") | % { dl $_ }
 
 # blog
-@("blog/index.html","blog/rss.xml","blog/2026-05-28-zero-dependency.html","blog/2026-05-29-store-website.html","blog/2026-05-30-nodejs-security.html","blog/2026-05-31-crawler-system.html","blog/2026-06-01-ai-fullstack.html") | % { dl $_ }
+@("blog/index.html","blog/rss.xml","blog/2026-05-28-zero-dependency.html","blog/2026-05-29-store-website.html","blog/2026-05-30-nodejs-security.html","blog/2026-05-31-crawler-system.html","blog/2026-06-01-ai-fullstack.html","blog/auto-2026-06-03.html") | % { dl $_ }
 
 # daily
-@("daily/index.html","daily/2026-06-01.html","daily/2026-06-02.html") | % { dl $_ }
+@("daily/index.html","daily/2026-06-01.html","daily/2026-06-02.html","daily/2026-06-03.html") | % { dl $_ }
+
+# digest
+@("digest/index.html") | % { dl $_ }
 
 # shop-demo (ATLAS clothing store)
 @("shop-demo/index.html","shop-demo/shop.html","shop-demo/product.html","shop-demo/cart.html","shop-demo/checkout.html","shop-demo/order-success.html","shop-demo/css/style.css","shop-demo/js/data.js","shop-demo/js/cart.js") | % { dl $_ }
