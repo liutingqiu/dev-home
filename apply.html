@@ -21,8 +21,12 @@ document.getElementById('applyForm').addEventListener('submit',async e=>{
   const data={name:fd.get('name'),phone:fd.get('phone'),email:fd.get('email'),description:fd.get('description')};
   fb.textContent='';btn.disabled=true;btn.textContent='提交中...';
   try{
-    const API=location.hostname==='www.liutingqiu.xyz'?'http://121.41.95.44:3458':'';
-const res=await fetch(API+'/api/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    if(location.protocol==='https:'){
+  fb.style.color='#d33';fb.textContent='请访问服务器版提交申请';
+  window.open('http://121.41.95.44:3458/apply.html','_blank');
+  btn.disabled=false;btn.textContent='提交申请';return;
+}
+const res=await fetch('/api/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
     const r=await res.json();
     if(res.ok){fb.style.color='#3a8';fb.textContent='提交成功！我会在24小时内联系你。';e.target.reset()}
     else{fb.style.color='#d33';fb.textContent=r.error||'提交失败'}
