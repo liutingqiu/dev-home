@@ -1,0 +1,7 @@
+[
+  {"name":"鲜味居·粤菜餐厅","icon":"🥢","desc":"纯 HTML+CSS+JS+Node.js 全栈官网。10 前台页面 + 2 后台页面 + 16 API 端点。46/46 测试通过。","tags":["全栈","餐饮"],"url":""},
+  {"name":"ALTESSE 巴黎高定 B2B","icon":"👗","desc":"暗黑主题 · 香槟金配色。7 页面前台 + 14 语双语后台。部署 Vercel，全球访问。","tags":["全栈","时尚"],"url":"https://altesse-two.vercel.app"},
+  {"name":"柳亭秋·个人品牌站","icon":"🧑‍💻","desc":"dev-home 展示站 · 自动化内容矩阵。6 篇文章 · 11 源爬虫 · 日报系统 · Dev.to 分发。","tags":["全栈","个人"],"url":"https://www.liutingqiu.xyz"},
+  {"name":"蛋糕商城","icon":"🎂","desc":"PHP + MySQL 大作业项目。商品展示 · 购物车 · 订单管理。XAMPP 8.2 验证通过。","tags":["PHP","电商"],"url":""},
+  {"name":"Reasonix 内容矩阵","icon":"🤖","desc":"全链路自动化系统：爬虫→日报→博客→Dev.to→RSS 分发→数据终端→邮件告警。","tags":["全栈","自动化"],"url":"http://121.41.95.44:3458"}
+]
