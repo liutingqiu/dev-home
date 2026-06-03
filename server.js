@@ -657,6 +657,11 @@ route('POST', '/api/trigger-deploy', (req, res) => {
   });
 });
 
+route('GET', '/api/projects', (req, res) => {
+  try { send(res, 200, JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'projects.json'), 'utf-8'))); }
+  catch { send(res, 200, []); }
+});
+
 route('GET', '/api/stats', (req, res) => {
   send(res, 200, readStats());
 });
