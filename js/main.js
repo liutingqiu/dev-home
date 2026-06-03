@@ -26,7 +26,8 @@ form?.addEventListener('submit',async e=>{
   const data=Object.fromEntries(new FormData(form));
   fb.className='form-feedback';fb.textContent='';btn.disabled=true;btn.textContent='提交中...';
   try{
-    const res=await fetch('/api/contact',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    const API=location.hostname==='www.liutingqiu.xyz'?'http://121.41.95.44:3458':'';
+    const res=await fetch(API+'/api/contact',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
     const r=await res.json();
     if(res.ok){fb.className='form-feedback success';fb.textContent='发送成功！我会通过你留下的手机号联系你。';form.reset()}
     else{fb.className='form-feedback error';fb.textContent=r.error||'发送失败'}
