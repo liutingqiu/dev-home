@@ -203,6 +203,11 @@ img{max-width:100%;display:block}
 .footer-links a:hover{color:var(--accent-success)}
 .site-footer p{font-size:12px;color:var(--text-muted)}
 
+/* ============ 子页面返回导航 ============ */
+.sub-nav{padding:14px 24px;background:rgba(248,246,242,.85);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid rgba(0,0,0,.06);position:sticky;top:0;z-index:100}
+.back-link{font-size:14px;color:var(--text-secondary);font-weight:500}
+.back-link:hover{color:var(--accent-success)}
+
 /* ============ 内容导航卡片(旧-保留兼容) ============ */
 .nav-cards{padding:80px 0}
 .nav-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
