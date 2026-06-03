@@ -147,6 +147,22 @@ section{padding:120px 0}
 .copy-toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#333;color:#fff;padding:12px 28px;border-radius:var(--radius-md);font-size:14px;z-index:10000;opacity:0;pointer-events:none;transition:opacity .3s}
 .copy-toast.show{opacity:1}
 
+/* ============ 内容导航卡片 ============ */
+.nav-cards{padding:80px 0}
+.nav-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
+.nav-card{display:flex;flex-direction:column;align-items:center;text-align:center;padding:36px 24px;background:var(--bg-card);border:1px solid var(--border-light);border-radius:18px;transition:transform .2s,box-shadow .2s;gap:10px}
+.nav-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-md)}
+.nav-card-icon{font-size:36px}
+.nav-card strong{font-size:20px;color:var(--text-primary)}
+.nav-card span{font-size:13px;color:var(--text-secondary);line-height:1.5}
+@media(max-width:768px){
+  .nav-cards{padding:50px 0}
+  .nav-grid{grid-template-columns:1fr;gap:14px}
+  .nav-card{padding:28px 20px}
+  .nav-card strong{font-size:18px}
+  .nav-card-icon{font-size:32px}
+}
+
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
 /* ============ 二级/三级页面 ============ */
