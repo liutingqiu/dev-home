@@ -657,6 +657,92 @@ route('POST', '/api/trigger-deploy', (req, res) => {
   });
 });
 
+// ============ Digest API ============
+let digestCache = null;
+let digestCacheTime = 0;
+
+function getDigestData() {
+  const now = Date.now();
+  if (digestCache && now - digestCacheTime < 300000) return digestCache; // 5分钟缓存
+
+  const rawDir = path.join(ROOT, '..', 'portfolio', 'data', 'raw');
+  const today = new Date().toISOString().slice(0, 10);
+  const all = [];
+  try {
+    const files = fs.readdirSync(rawDir).filter(f => f.startsWith(today));
+    for (const f of files) {
+      const data = JSON.parse(fs.readFileSync(path.join(rawDir, f), 'utf-8'));
+      if (!data?.items) continue;
+      for (const item of data.items) {
+        const cats = {
+          '🤖 AI/机器学习': ['ai','llm','gpt','machine learning','deep learning','neural','openai','claude','diffusion'],
+          '🎨 前端开发': ['react','vue','angular','css','html','frontend','ui','tailwind','next.js','component'],
+          '⚙️ 后端开发': ['api','server','backend','database','sql','redis','graphql','microservice','golang','rust','node'],
+          '☁️ DevOps': ['devops','docker','kubernetes','k8s','terraform','aws','cloud','serverless','deploy'],
+          '🔒 安全': ['security','vulnerability','cve','hack','exploit','encrypt','auth'],
+          '📦 开源项目': ['open source','github','framework','library','tool','cli','plugin'],
+          '📝 教程': ['tutorial','guide','how to','handbook','learn','101'],
+          '🐍 编程语言': ['python','typescript','javascript','rust','golang','zig','java','kotlin','swift'],
+          '💡 产品/创意': ['product','startup','saas','design','ux','figma','show hn'],
+          '📱 移动开发': ['ios','android','flutter','react native','mobile']
+        };
+        const title = (item.title||'').toLowerCase();
+        const desc = (item.description||'').toLowerCase();
+        const text = title + ' ' + desc;
+        let cat = '📋 综合';
+        for (const [c, kws] of Object.entries(cats)) {
+          if (kws.some(k => text.includes(k))) { cat = c; break; }
+        }
+        all.push({
+          title: item.title||'无标题',
+          url: item.url||'#',
+          description: (item.description||'').slice(0,150),
+          score: item.stars||item.score||item.points||item.reactions||1,
+          cat,
+          source: data.source,
+          time: item.createdAt || new Date().toISOString()
+        });
+      }
+    }
+  } catch(e) {}
+
+  digestCache = { items: all, time: now };
+  digestCacheTime = now;
+  return digestCache;
+}
+
+route('GET', '/api/digest', (req, res) => {
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  const cat = url.searchParams.get('cat') || '';
+  const sort = url.searchParams.get('sort') || 'hot';
+  const search = (url.searchParams.get('search') || '').toLowerCase();
+  const limit = parseInt(url.searchParams.get('limit') || '10');
+
+  const { items } = getDigestData();
+
+  let filtered = items;
+  if (cat) filtered = filtered.filter(i => i.cat === cat);
+  if (search) filtered = filtered.filter(i => (i.title+i.description).toLowerCase().includes(search));
+
+  if (sort === 'new') filtered.sort((a,b) => b.time.localeCompare(a.time));
+  else filtered.sort((a,b) => b.score - a.score);
+
+  // 去重
+  const seen = new Set();
+  const unique = filtered.filter(i => { if(seen.has(i.url)) return false; seen.add(i.url); return true; });
+
+  // 分类统计
+  const catStats = {};
+  for (const i of items) { catStats[i.cat] = (catStats[i.cat]||0) + 1; }
+
+  send(res, 200, {
+    items: unique.slice(0, limit),
+    total: unique.length,
+    catStats,
+    sourceStats: {}
+  });
+});
+
 route('GET', '/api/projects', (req, res) => {
   try { send(res, 200, JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'projects.json'), 'utf-8'))); }
   catch { send(res, 200, []); }
