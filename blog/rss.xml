@@ -5,9 +5,16 @@
   <link>http://121.41.95.44:3458/blog/</link>
   <description>全栈开发、安全加固、爬虫系统——零依赖实战</description>
   <language>zh-CN</language>
-  <lastBuildDate>Tue, 02 Jun 2026 04:02:13 GMT</lastBuildDate>
+  <lastBuildDate>Wed, 03 Jun 2026 04:02:33 GMT</lastBuildDate>
   <atom:link href="http://121.41.95.44:3458/blog/rss.xml" rel="self" type="application/rss+xml"/>
 
+  <item>
+    <title>技术速递 · 2026-06-03</title>
+    <link>http://121.41.95.44:3458/blog/auto-2026-06-03.html</link>
+    <guid>http://121.41.95.44:3458/blog/auto-2026-06-03.html</guid>
+    <pubDate>Wed, 03 Jun 2026 00:00:00 GMT</pubDate>
+    <description>今日 TOP 15 技术精选，来自 1 个平台。</description>
+  </item>
   <item>
     <title>AI 辅助全栈开发：我如何用 Reasonix 从零搭建内容矩阵</title>
     <link>http://121.41.95.44:3458/blog/2026-06-01-ai-fullstack.html</link>
