@@ -743,6 +743,20 @@ route('GET', '/api/digest', (req, res) => {
   });
 });
 
+// gorse 推荐代理
+route('GET', '/api/gorse-recommend', async (req, res) => {
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  const item = url.searchParams.get('item') || '';
+  try {
+    const resp = await fetch(`http://localhost:8088/api/recommend/${item}?n=5`);
+    const items = await resp.json();
+    const result = (items || []).map(i => ({ id: i.Id || i.ItemId || '', title: i.Comment || '' }));
+    send(res, 200, result);
+  } catch {
+    send(res, 200, []);
+  }
+});
+
 route('GET', '/api/projects', (req, res) => {
   try { send(res, 200, JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'projects.json'), 'utf-8'))); }
   catch { send(res, 200, []); }
