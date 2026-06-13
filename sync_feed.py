@@ -28,6 +28,19 @@ def is_junk_title(t):
         return True
     return False
 
+def is_junk_summary(s):
+    """过滤代码片段 / HTML 源码混入正文"""
+    if not s or len(s) < 15:
+        return True
+    # 代码特征：HTML标签、大括号、分号密集、npm/import/function关键字
+    code_score = len(re.findall(r'<[a-zA-Z]+[\s=>/]|</[a-zA-Z]+>|{|\}|;\s*$|function\(|const |import |export |npm |git clone|<code>', s))
+    if code_score >= 2:
+        return True
+    # 纯URL/路径/技术标识符（如 "PushEvent", "DeleteEvent"）
+    if re.match(r'^[A-Z][a-z]+Event$', s.strip()):
+        return True
+    return False
+
 def sync():
     all_items = []
     stats = {}
@@ -51,6 +64,9 @@ def sync():
         for item in items:
             t = item.get('title', '')
             if is_junk_title(t):
+                continue
+            s = item.get('summary', '') or ''
+            if is_junk_summary(s):
                 continue
             
             source = item.get('source', {})
