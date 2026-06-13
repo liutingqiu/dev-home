@@ -9,13 +9,15 @@ setTimeout(()=>{document.querySelectorAll('.hero .fade-in').forEach(el=>el.class
 // ============ 截图点击放大 ============
 const overlay=document.getElementById('zoomOverlay');
 const zoomImg=document.getElementById('zoomImg');
-document.querySelectorAll('.ss').forEach(item=>{
-  item.addEventListener('click',()=>{
-    zoomImg.src=item.dataset.src;
-    overlay.classList.add('active');
+if (overlay && zoomImg) {
+  document.querySelectorAll('.ss').forEach(item=>{
+    item.addEventListener('click',()=>{
+      zoomImg.src=item.dataset.src;
+      overlay.classList.add('active');
+    });
   });
-});
-overlay.addEventListener('click',()=>{overlay.classList.remove('active')});
+  overlay.addEventListener('click',()=>{overlay.classList.remove('active')});
+}
 
 // ============ 联系表单 ============
 const form=document.getElementById('contactForm');
@@ -39,6 +41,7 @@ form?.addEventListener('submit',async e=>{
 
 // ============ 复制 ============
 const toast=document.getElementById('copyToast');
+if (toast) {
 document.querySelectorAll('.cc-item').forEach(el=>{
   el.addEventListener('click',()=>{
     const t=el.dataset.copy;
@@ -47,4 +50,5 @@ document.querySelectorAll('.cc-item').forEach(el=>{
   });
 });
 function showToast(){toast.textContent='已复制到剪贴板';toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),1500)}
+}
 })();
