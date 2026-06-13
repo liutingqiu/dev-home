@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>技术精选 · 柳亭秋</title>
+<meta name="description" content="每日技术精选，来自AI资讯、软件开发、UI设计、小程序等多源爬虫的精华内容。支持搜索和分类筛选。">
+<meta property="og:title" content="技术精选 · 柳亭秋">
+<meta property="og:description" content="每日技术精选，多源爬虫智能聚合。">
+<meta property="og:type" content="website">
+<link rel="stylesheet" href="/css/style.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ====== 精选页专属样式 ====== */
+.feed-page { max-width: 1100px; margin: 0 auto; padding: 24px 24px 80px; }
+
+/* 页头 */
+.feed-header { text-align: center; padding: 40px 0 32px; }
+.feed-header h1 { font-family: 'Noto Serif SC', serif; font-size: 36px; color: var(--text-primary); margin-bottom: 8px; }
+.feed-header p { font-size: 14px; color: var(--text-muted); }
+
+/* 搜索栏 */
+.feed-toolbar { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; position: sticky; top: 0; z-index: 10; background: var(--bg-page); padding: 12px 0; }
+.feed-search { flex: 1; min-width: 200px; padding: 10px 16px; border: 1px solid var(--border-light); border-radius: var(--radius-md); font-size: 14px; font-family: inherit; background: var(--bg-card); color: var(--text-primary); outline: none; transition: border-color .2s; }
+.feed-search:focus { border-color: var(--text-secondary); }
+.feed-filter { padding: 10px 16px; border: 1px solid var(--border-light); border-radius: var(--radius-md); font-size: 13px; font-family: inherit; background: var(--bg-card); color: var(--text-primary); cursor: pointer; outline: none; min-width: 100px; }
+
+/* 统计栏 */
+.feed-stats { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; font-size: 13px; color: var(--text-muted); }
+.feed-stats span { background: var(--bg-card); padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border-light); cursor: pointer; transition: all .2s; }
+.feed-stats span:hover { border-color: var(--text-secondary); color: var(--text-primary); }
+.feed-stats span.active { background: var(--text-primary); color: var(--bg-card); border-color: var(--text-primary); }
+
+/* 卡片 */
+.feed-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+.feed-card { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 16px; padding: 20px 24px; transition: transform .2s, box-shadow .2s; display: flex; flex-direction: column; gap: 8px; }
+.feed-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+.feed-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.feed-card-cat { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; background: var(--border-light); color: var(--text-secondary); white-space: nowrap; }
+.feed-card-cat.AI { background: #e8f5e9; color: #2e7d32; }
+.feed-card-cat.Software { background: #e3f2fd; color: #1565c0; }
+.feed-card-cat.UI { background: #fce4ec; color: #c62828; }
+.feed-card-cat.MiniProgram { background: #fff3e0; color: #e65100; }
+.feed-card h3 { font-size: 16px; line-height: 1.5; color: var(--text-primary); }
+.feed-card h3 a { color: inherit; }
+.feed-card h3 a:hover { text-decoration: underline; }
+.feed-card-summary { font-size: 13px; color: var(--text-secondary); line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.feed-card-meta { font-size: 12px; color: var(--text-muted); display: flex; gap: 12px; margin-top: auto; padding-top: 8px; border-top: 1px solid var(--border-light); }
+
+/* 空状态 */
+.feed-empty { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+.feed-empty p { font-size: 15px; margin-bottom: 8px; }
+
+/* 加载中 */
+.feed-loading { text-align: center; padding: 60px; color: var(--text-muted); }
+
+@media (max-width: 768px) {
+  .feed-page { padding: 16px; }
+  .feed-header { padding: 24px 0 20px; }
+  .feed-header h1 { font-size: 26px; }
+  .feed-grid { grid-template-columns: 1fr; }
+  .feed-toolbar { flex-direction: column; }
+  .feed-filter { width: 100%; }
+}
+</style>
+</head>
+<body>
+<nav class="sub-nav"><a href="/" class="back-link">← 返回首页</a></nav>
+<main class="feed-page">
+  <div class="feed-header">
+    <h1>技术精选</h1>
+    <p>每日从多源爬虫聚合精华内容 · 支持搜索与分类筛选</p>
+  </div>
+
+  <!-- 搜索与筛选 -->
+  <div class="feed-toolbar">
+    <input type="search" class="feed-search" id="feedSearch" placeholder="搜索关键词..." aria-label="搜索技术内容">
+    <select class="feed-filter" id="feedCat">
+      <option value="">全部分类</option>
+      <option value="AI">AI资讯</option>
+      <option value="Software">软件开发</option>
+      <option value="UI">UI设计</option>
+      <option value="MiniProgram">小程序</option>
+    </select>
+    <select class="feed-filter" id="feedSrc">
+      <option value="">全部来源</option>
+    </select>
+  </div>
+
+  <!-- 分类统计 -->
+  <div class="feed-stats" id="feedStats"></div>
+
+  <!-- 内容区 -->
+  <div class="feed-grid" id="feedGrid">
+    <div class="feed-loading"><p>加载中...</p></div>
+  </div>
+</main>
+
+<script src="/js/main.js"></script>
+<script>
+(() => { 'use strict';
+
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+
+let allItems = [];
+let catStats = {};
+let srcStats = {};
+
+function renderStats(activeCat) {
+  const container = $('#feedStats');
+  let html = '';
+  for (const [cat, count] of Object.entries(catStats)) {
+    const names = { AI: 'AI', Software: '软件', UI: 'UI', MiniProgram: '小程序' };
+    html += `<span class="${activeCat === cat ? 'active' : ''}" data-cat="${cat}">${names[cat] || cat} ${count}</span>`;
+  }
+  container.innerHTML = html;
+  container.querySelectorAll('span').forEach(s => {
+    s.addEventListener('click', () => {
+      $('#feedCat').value = s.dataset.cat;
+      applyFilters();
+    });
+  });
+}
+
+function renderItems(items) {
+  const grid = $('#feedGrid');
+  if (!items.length) {
+    grid.innerHTML = '<div class="feed-empty"><p>📭 暂无匹配内容</p><p>试试其他关键词或分类~</p></div>';
+    return;
+  }
+  grid.innerHTML = items.map(i => {
+    const timeStr = i.time ? i.time.slice(0, 10) : '';
+    return `
+    <article class="feed-card">
+      <div class="feed-card-top">
+        <span class="feed-card-cat ${i.sourceType}">${i.categoryCN || i.sourceType}</span>
+      </div>
+      <h3>${i.url ? `<a href="${i.url}" target="_blank" rel="noopener">${escHTML(i.title)}</a>` : escHTML(i.title)}</h3>
+      ${i.summary ? `<p class="feed-card-summary">${escHTML(i.summary)}</p>` : ''}
+      <div class="feed-card-meta">
+        ${i.platform ? `<span>📡 ${escHTML(i.platform)}</span>` : ''}
+        ${timeStr ? `<span>🕐 ${timeStr}</span>` : ''}
+      </div>
+    </article>`;
+  }).join('');
+}
+
+function escHTML(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function applyFilters() {
+  const search = $('#feedSearch').value.toLowerCase();
+  const cat = $('#feedCat').value;
+  const src = $('#feedSrc').value;
+  let filtered = allItems;
+  if (search) filtered = filtered.filter(i => (i.title + i.summary).toLowerCase().includes(search));
+  if (cat) filtered = filtered.filter(i => i.sourceType === cat);
+  if (src) filtered = filtered.filter(i => i.platform === src);
+  renderItems(filtered.slice(0, 100));
+  renderStats(cat);
+}
+
+async function loadFeed() {
+  try {
+    const resp = await fetch('/api/feed');
+    const data = await resp.json();
+    allItems = data.items || [];
+    catStats = data.catStats || {};
+    srcStats = data.srcStats || {};
+
+    // 填充来源筛选
+    const srcSelect = $('#feedSrc');
+    for (const [src] of Object.entries(srcStats).sort()) {
+      const opt = document.createElement('option');
+      opt.value = src;
+      opt.textContent = src;
+      srcSelect.appendChild(opt);
+    }
+
+    applyFilters();
+  } catch (e) {
+    $('#feedGrid').innerHTML = '<div class="feed-empty"><p>⚠️ 数据加载失败</p><p>爬虫系统可能未运行，请稍后再试。</p></div>';
+  }
+}
+
+// 搜索防抖
+let debounceTimer;
+$('#feedSearch').addEventListener('input', () => {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(applyFilters, 300);
+});
+$('#feedCat').addEventListener('change', applyFilters);
+$('#feedSrc').addEventListener('change', applyFilters);
+
+loadFeed();
+})();
+</script>
+</body>
+</html>

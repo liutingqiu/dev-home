@@ -8,38 +8,10 @@ const PORT = process.env.PORT || 3000;
 const ROOT = __dirname;
 const ROOT_SAFE = ROOT + path.sep;
 const DATA_DIR = path.join(ROOT, 'data');
-const CHAT_IMAGES_DIR = path.join(DATA_DIR, 'chat-images');
-const CHAT_DATA_DIR = path.join(DATA_DIR, 'chat');
-const INSPIRATION_DIR = path.join(ROOT, '..', 'portfolio', 'inspiration');
 const BODY_MAX = 1024 * 1024;
 const RATE_LIMIT = 60;
 const RATE_WINDOW = 60000;
 const COMPRESSIBLE = ['.html', '.css', '.js', '.json', '.svg'];
-
-// ============ Chat 鉴权 ============
-let CHAT_KEY = '';
-let REPLY_KEY = '';
-try {
-  const chatConfig = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'chat-config.json'), 'utf-8'));
-  CHAT_KEY = chatConfig.key || '';
-  REPLY_KEY = chatConfig.replyKey || '';
-} catch {}
-
-function checkChatAuth(req, res) {
-  const url = new URL(req.url, `http://${req.headers.host}`);
-  const key = url.searchParams.get('key');
-  if (!CHAT_KEY) return true;
-  if (!key || key !== CHAT_KEY) { send(res, 403, { error: 'Forbidden' }); return false; }
-  return true;
-}
-
-function checkReplyAuth(req, res) {
-  const url = new URL(req.url, `http://${req.headers.host}`);
-  const key = url.searchParams.get('key');
-  if (!REPLY_KEY) { send(res, 500, { error: 'Reply not configured' }); return false; }
-  if (!key || key !== REPLY_KEY) { send(res, 403, { error: 'Forbidden' }); return false; }
-  return true;
-}
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -172,7 +144,7 @@ function serveStatic(req, res) {
 
   let fullPath = path.join(ROOT, pathname);
   if (!fullPath.startsWith(ROOT_SAFE) && fullPath !== path.join(ROOT, 'index.html')) { send(res, 403, { error: 'Forbidden' }); return true; }
-  if (pathname.toLowerCase().startsWith('/data/') && !pathname.toLowerCase().startsWith('/data/chat-images/')) { send(res, 403, { error: 'Forbidden' }); return true; }
+  if (pathname.toLowerCase().startsWith('/data/')) { send(res, 403, { error: 'Forbidden' }); return true; }
   if (!fs.existsSync(fullPath)) return false;
 
   const stat = fs.statSync(fullPath);
@@ -220,6 +192,12 @@ function route(method, pattern, handler, auth = false) {
 route('GET', '/api/settings', (req, res) => send(res, 200, readJSON('settings.json')));
 route('GET', '/api/skills', (req, res) => send(res, 200, readJSON('settings.json').skills || []));
 route('GET', '/api/projects', (req, res) => send(res, 200, readJSON('projects.json')));
+
+// ---- 服务器重启 ----
+route('POST', '/api/restart-server', (req, res) => {
+  send(res, 200, { ok: true, msg: 'restarting...' });
+  setTimeout(() => process.exit(0), 500);
+});
 
 // ---- 联系留言 ----
 route('POST', '/api/contact', async (req, res) => {
@@ -423,389 +401,111 @@ function sanitizeStats(stats) {
   return out;
 }
 
-// ============ Chat 消息存储 ============
-function getChatFile(month) {
-  return path.join(CHAT_DATA_DIR, `${month}.json`);
-}
+// ============ 精选内容 API ============
+const FEED_SOURCES = [
+  { dir: path.join(ROOT, '..', 'tools', 'KnowledgeSys', 'ai_news_output'), cat: 'AI', catCN: 'AI资讯' },
+  { dir: path.join(ROOT, '..', 'tools', 'KnowledgeSys', 'software_dev_output'), cat: 'Software', catCN: '软件开发' },
+  { dir: path.join(ROOT, '..', 'tools', 'KnowledgeSys', 'ui_design_output'), cat: 'UI', catCN: 'UI设计' },
+  { dir: path.join(ROOT, '..', 'tools', 'KnowledgeSys', 'miniprogram_output'), cat: 'MiniProgram', catCN: '小程序' },
+];
+let feedCache = null;
+let feedCacheTime = 0;
 
-function readChatMessages(month) {
-  const file = getChatFile(month);
-  try { return JSON.parse(fs.readFileSync(file, 'utf-8')); }
-  catch { return []; }
-}
-
-function writeChatMessages(month, messages) {
-  const dir = CHAT_DATA_DIR;
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  const p = getChatFile(month);
-  fs.writeFileSync(p + '.tmp', JSON.stringify(messages, null, 2), 'utf-8');
-  fs.renameSync(p + '.tmp', p);
-}
-
-function saveChatImage(base64Data) {
-  const dir = CHAT_IMAGES_DIR;
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  // 提取 MIME 和纯 base64
-  const match = base64Data.match(/^data:(image\/\w+);base64,(.+)$/);
-  if (!match) return null;
-  const ext = match[1] === 'image/png' ? '.png' : match[1] === 'image/gif' ? '.gif' : '.jpg';
-  const raw = Buffer.from(match[2], 'base64');
-  const filename = `${new Date().toISOString().replace(/[:.]/g, '-')}-${crypto.randomBytes(4).toString('hex')}${ext}`;
-  const filepath = path.join(dir, filename);
-  fs.writeFileSync(filepath, raw);
-  return `/data/chat-images/${filename}`;
-}
-
-function generateMsgId() {
-  return 'msg-' + Date.now().toString(36) + '-' + crypto.randomBytes(3).toString('hex');
-}
-
-// ============ Chat API ============
-route('POST', '/api/chat', async (req, res) => {
-  if (!checkChatAuth(req, res)) return;
-  const data = await readBody(req);
-  if (data.__error) { send(res, 400, { error: data.__error }); return; }
-  if (!V.len(data.content, 0, 10000)) { send(res, 400, { error: '消息过长' }); return; }
-
-  const now = new Date();
-  const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const messages = readChatMessages(month);
-
-  const msg = {
-    id: generateMsgId(),
-    from: 'master',
-    mode: data.mode === 'urgent' ? 'urgent' : 'inspire',
-    type: data.image ? 'image' : 'text',
-    content: data.image ? '' : esc(data.content || ''),
-    image: data.image ? saveChatImage(data.image) : null,
-    read: false,
-    createdAt: now.toISOString()
-  };
-
-  messages.push(msg);
-  writeChatMessages(month, messages);
-
-  // 如果是灵感模式，同时写入 portfolio inspiration inbox
-  if (msg.mode === 'inspire' && msg.content) {
-    try {
-      const inboxDir = path.join(INSPIRATION_DIR, 'inbox');
-      if (!fs.existsSync(inboxDir)) fs.mkdirSync(inboxDir, { recursive: true });
-      const inspireFile = path.join(inboxDir, `${now.toISOString().slice(0, 10)}-${String(messages.length).padStart(3, '0')}.md`);
-      fs.writeFileSync(inspireFile, `# 灵感 · ${now.toISOString().slice(0, 16)}\n\n${data.content}\n\n${data.image ? `![图片](${msg.image})` : ''}\n`, 'utf-8');
-
-      // 更新灵感池索引
-      const indexFile = path.join(INSPIRATION_DIR, 'index.json');
-      let index = [];
-      try { index = JSON.parse(fs.readFileSync(indexFile, 'utf-8')); } catch {}
-      index.push({
-        id: path.basename(inspireFile, '.md'),
-        title: data.content.slice(0, 50).replace(/\n/g, ' '),
-        status: 'inbox',
-        date: now.toISOString().slice(0, 10),
-        file: path.basename(inspireFile)
-      });
-      fs.writeFileSync(indexFile, JSON.stringify(index, null, 2));
-    } catch (e) { console.error('灵感写入失败:', e.message); }
-  }
-
-  send(res, 200, { success: true, id: msg.id });
-});
-
-route('GET', '/api/chat', (req, res) => {
-  if (!checkChatAuth(req, res)) return;
-  const url = new URL(req.url, `http://${req.headers.host}`);
-  const since = url.searchParams.get('since');
-  const limit = parseInt(url.searchParams.get('limit') || '50');
-
-  // 加载最近几个月的数据
-  const now = new Date();
-  let allMessages = [];
-  for (let m = 0; m < 3; m++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - m, 1);
-    const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    allMessages = readChatMessages(month).concat(allMessages);
-  }
-
-  // since 过滤
-  if (since) {
-    const sinceIdx = allMessages.findIndex(m => m.id === since);
-    if (sinceIdx >= 0) allMessages = allMessages.slice(sinceIdx + 1);
-  }
-
-  // 限制数量（取最近 N 条）
-  if (allMessages.length > limit) allMessages = allMessages.slice(-limit);
-
-  send(res, 200, allMessages);
-});
-
-route('POST', '/api/inspire', async (req, res) => {
-  if (!checkChatAuth(req, res)) return;
-  const data = await readBody(req);
-  if (data.__error) { send(res, 400, { error: data.__error }); return; }
-  if (!V.len(data.content, 1, 10000)) { send(res, 400, { error: '内容为1-10000字符' }); return; }
-
-  const now = new Date();
-  try {
-    const inboxDir = path.join(INSPIRATION_DIR, 'inbox');
-    if (!fs.existsSync(inboxDir)) fs.mkdirSync(inboxDir, { recursive: true });
-
-    // 计数已有文件
-    const existing = fs.readdirSync(inboxDir).filter(f => f.endsWith('.md'));
-    const filename = `${now.toISOString().slice(0, 10)}-${String(existing.length + 1).padStart(3, '0')}.md`;
-    const inspireFile = path.join(inboxDir, filename);
-
-    let md = `# 灵感 · ${now.toISOString().slice(0, 16)}\n\n${data.content}\n`;
-    if (data.image) {
-      const imgPath = saveChatImage(data.image);
-      if (imgPath) md += `\n![图片](${imgPath})\n`;
-    }
-    fs.writeFileSync(inspireFile, md, 'utf-8');
-
-    // 更新索引
-    const indexFile = path.join(INSPIRATION_DIR, 'index.json');
-    let index = [];
-    try { index = JSON.parse(fs.readFileSync(indexFile, 'utf-8')); } catch {}
-    index.push({
-      id: path.basename(inspireFile, '.md'),
-      title: data.content.slice(0, 50).replace(/\n/g, ' '),
-      status: 'inbox',
-      date: now.toISOString().slice(0, 10),
-      file: filename
-    });
-    fs.writeFileSync(indexFile, JSON.stringify(index, null, 2));
-
-    send(res, 200, { success: true, file: filename });
-  } catch (e) {
-    console.error('灵感写入失败:', e.message);
-    send(res, 500, { error: '保存失败' });
-  }
-});
-
-route('POST', '/api/reply', async (req, res) => {
-  if (!checkReplyAuth(req, res)) return;
-  const data = await readBody(req);
-  if (data.__error) { send(res, 400, { error: data.__error }); return; }
-  if (!V.len(data.content, 1, 5000)) { send(res, 400, { error: '回复内容为1-5000字符' }); return; }
-
-  const now = new Date();
-  const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const messages = readChatMessages(month);
-
-  const msg = {
-    id: generateMsgId(),
-    from: 'reasonix',
-    mode: 'urgent',
-    type: 'text',
-    content: esc(data.content),
-    image: null,
-    read: false,
-    createdAt: now.toISOString()
-  };
-
-  messages.push(msg);
-  writeChatMessages(month, messages);
-  send(res, 200, { success: true, id: msg.id });
-});
-
-// ============ 访问统计 ============
-const STATS_FILE = path.join(DATA_DIR, 'stats.json');
-function readStats() { try { return JSON.parse(fs.readFileSync(STATS_FILE, 'utf-8')); } catch { return { pages: {}, total: 0, days: {} }; } }
-function writeStats(s) { fs.writeFileSync(STATS_FILE + '.tmp', JSON.stringify(s, null, 2), 'utf-8'); fs.renameSync(STATS_FILE + '.tmp', STATS_FILE); }
-
-route('POST', '/api/track', async (req, res) => {
-  const data = await readBody(req);
-  if (data.__error) { send(res, 400, {}); return; }
-  const stats = readStats();
-  const page = (data.page || '/').slice(0, 100);
-  stats.total = (stats.total || 0) + 1;
-  stats.pages[page] = (stats.pages[page] || 0) + 1;
-  const today = new Date().toISOString().slice(0, 10);
-  stats.days[today] = (stats.days[today] || 0) + 1;
-  writeStats(stats);
-  send(res, 200, { ok: true });
-});
-
-route('GET', '/api/daily-list', (req, res) => {
-  try {
-    const dir = path.join(ROOT, 'daily');
-    const files = fs.readdirSync(dir).filter(f => f.endsWith('.html') && f !== 'index.html');
-    send(res, 200, files.length);
-  } catch { send(res, 200, 0); }
-});
-
-route('GET', '/api/blog-list', (req, res) => {
-  try {
-    const dir = path.join(ROOT, 'blog');
-    const files = fs.readdirSync(dir).filter(f => f.endsWith('.html') && f !== 'index.html');
-    send(res, 200, files.length);
-  } catch { send(res, 200, 0); }
-});
-
-// 触发远程部署（先回OK，后台执行避免重启切断连接）
-// 重启服务器（仅在server.js更新时需要）
-route('POST', '/api/restart-server', (req, res) => {
-  send(res, 200, { ok: true, msg: 'restarting...' });
-  setTimeout(() => process.exit(0), 500);
-});
-
-route('POST', '/api/trigger-deploy', (req, res) => {
-  send(res, 200, { ok: true, msg: 'deploy started' });
-  const { exec } = require('child_process');
-  exec('powershell -File deploy-remote.ps1', { cwd: ROOT }, (err, stdout, stderr) => {
-    if (err) console.error('Deploy error:', stderr);
-    else console.log('Deploy ok:', stdout.slice(0, 200));
-  });
-});
-
-// ============ Digest API ============
-let digestCache = null;
-let digestCacheTime = 0;
-
-function getDigestData() {
+function buildFeed() {
   const now = Date.now();
-  if (digestCache && now - digestCacheTime < 300000) return digestCache; // 5分钟缓存
+  if (feedCache && now - feedCacheTime < 300000) return feedCache; // 5分钟内存缓存
 
-  const rawDir = path.join(ROOT, '..', 'portfolio', 'data', 'raw');
-  const today = new Date().toISOString().slice(0, 10);
   const all = [];
-  try {
-    const files = fs.readdirSync(rawDir).filter(f => f.startsWith(today));
-    for (const f of files) {
-      const data = JSON.parse(fs.readFileSync(path.join(rawDir, f), 'utf-8'));
-      if (!data?.items) continue;
-      for (const item of data.items) {
-        const cats = {
-          '🤖 AI/机器学习': ['ai','llm','gpt','machine learning','deep learning','neural','openai','claude','diffusion'],
-          '🎨 前端开发': ['react','vue','angular','css','html','frontend','ui','tailwind','next.js','component'],
-          '⚙️ 后端开发': ['api','server','backend','database','sql','redis','graphql','microservice','golang','rust','node'],
-          '☁️ DevOps': ['devops','docker','kubernetes','k8s','terraform','aws','cloud','serverless','deploy'],
-          '🔒 安全': ['security','vulnerability','cve','hack','exploit','encrypt','auth'],
-          '📦 开源项目': ['open source','github','framework','library','tool','cli','plugin'],
-          '📝 教程': ['tutorial','guide','how to','handbook','learn','101'],
-          '🐍 编程语言': ['python','typescript','javascript','rust','golang','zig','java','kotlin','swift'],
-          '💡 产品/创意': ['product','startup','saas','design','ux','figma','show hn'],
-          '📱 移动开发': ['ios','android','flutter','react native','mobile']
-        };
-        const title = (item.title||'').toLowerCase();
-        const desc = (item.description||'').toLowerCase();
-        const text = title + ' ' + desc;
-        let cat = '📋 综合';
-        for (const [c, kws] of Object.entries(cats)) {
-          if (kws.some(k => text.includes(k))) { cat = c; break; }
-        }
+  for (const src of FEED_SOURCES) {
+    try {
+      const files = fs.readdirSync(src.dir).filter(f => f.endsWith('.json')).sort().reverse();
+      if (!files.length) continue;
+      const latest = JSON.parse(fs.readFileSync(path.join(src.dir, files[0]), 'utf-8'));
+      const items = latest.items || latest.interviews || [];
+      for (const item of items) {
+        const t = item.title || '';
+        if (!t || t.length < 10) continue;
+        if (/<[a-zA-Z]+[\s=>]|class="|target="/.test(t)) continue; // 过滤HTML垃圾
+        const source = item.source || {};
+        const tag = item.interviewee || item.topic || {};
         all.push({
-          title: item.title||'无标题',
-          url: item.url||'#',
-          description: (item.description||'').slice(0,150),
-          score: item.stars||item.score||item.points||item.reactions||1,
-          cat,
-          source: data.source,
-          time: item.createdAt || new Date().toISOString()
+          title: t.slice(0, 200),
+          summary: (item.summary || '').slice(0, 300),
+          url: source.url || '',
+          platform: source.platform || '',
+          category: tag.category || src.cat,
+          categoryCN: tag.name_cn || src.catCN,
+          sourceType: src.cat,
+          time: item.publish_time || latest.generated_at || '',
+          score: item.metadata?.play || item.metadata?.stars || 1
         });
       }
-    }
-  } catch(e) {}
+    } catch (e) { /* source unavailable, skip */ }
+  }
 
-  digestCache = { items: all, time: now };
-  digestCacheTime = now;
-  return digestCache;
+  // 按时间倒序 + 去重
+  const seen = new Set();
+  const unique = [];
+  for (const item of all.sort((a, b) => b.time.localeCompare(a.time))) {
+    const key = item.url || item.title;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(item);
+  }
+
+  // 无新数据时，回退到磁盘缓存（爬虫挂了也能显示上一批数据）
+  if (!unique.length) {
+    try {
+      const cacheFile = path.join(DATA_DIR, 'feed-cache.json');
+      if (fs.existsSync(cacheFile)) {
+        const cached = JSON.parse(fs.readFileSync(cacheFile, 'utf-8'));
+        feedCache = cached;
+        feedCacheTime = now;
+        return feedCache;
+      }
+    } catch {}
+  }
+
+  feedCache = { items: unique, generatedAt: new Date().toISOString() };
+  feedCacheTime = now;
+  // 写入磁盘缓存
+  try {
+    const cacheFile = path.join(DATA_DIR, 'feed-cache.json');
+    fs.writeFileSync(cacheFile, JSON.stringify(feedCache), 'utf-8');
+  } catch {}
+  return feedCache;
 }
 
-route('GET', '/api/digest', (req, res) => {
+route('GET', '/api/feed', (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
+  const search = (url.searchParams.get('q') || '').toLowerCase();
   const cat = url.searchParams.get('cat') || '';
-  const sort = url.searchParams.get('sort') || 'hot';
-  const search = (url.searchParams.get('search') || '').toLowerCase();
-  const limit = parseInt(url.searchParams.get('limit') || '10');
+  const src = url.searchParams.get('src') || '';
+  const limit = parseInt(url.searchParams.get('limit') || '60');
 
-  const { items } = getDigestData();
-
+  const { items } = buildFeed();
   let filtered = items;
-  if (cat) filtered = filtered.filter(i => i.cat === cat);
-  if (search) filtered = filtered.filter(i => (i.title+i.description).toLowerCase().includes(search));
 
-  if (sort === 'new') filtered.sort((a,b) => b.time.localeCompare(a.time));
-  else filtered.sort((a,b) => b.score - a.score);
-
-  // 去重
-  const seen = new Set();
-  const unique = filtered.filter(i => { if(seen.has(i.url)) return false; seen.add(i.url); return true; });
+  if (search) filtered = filtered.filter(i => (i.title + i.summary).toLowerCase().includes(search));
+  if (cat) filtered = filtered.filter(i => i.sourceType === cat || i.category === cat);
+  if (src) filtered = filtered.filter(i => i.platform === src);
 
   // 分类统计
   const catStats = {};
-  for (const i of items) { catStats[i.cat] = (catStats[i.cat]||0) + 1; }
+  const srcStats = {};
+  for (const i of items) {
+    catStats[i.sourceType] = (catStats[i.sourceType] || 0) + 1;
+    if (i.platform) srcStats[i.platform] = (srcStats[i.platform] || 0) + 1;
+  }
 
   send(res, 200, {
-    items: unique.slice(0, limit),
-    total: unique.length,
+    items: filtered.slice(0, limit),
+    total: filtered.length,
+    grandTotal: items.length,
     catStats,
-    sourceStats: {}
+    srcStats,
+    generatedAt: feedCache?.generatedAt || new Date().toISOString()
   });
-});
-
-// gorse 推荐代理
-route('GET', '/api/gorse-recommend', async (req, res) => {
-  const url = new URL(req.url, `http://${req.headers.host}`);
-  const item = url.searchParams.get('item') || '';
-  try {
-    const resp = await fetch(`http://localhost:8088/api/recommend/${item}?n=5`);
-    const items = await resp.json();
-    const result = (items || []).map(i => ({ id: i.Id || i.ItemId || '', title: i.Comment || '' }));
-    send(res, 200, result);
-  } catch {
-    send(res, 200, []);
-  }
-});
-
-route('GET', '/api/projects', (req, res) => {
-  try { send(res, 200, JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'projects.json'), 'utf-8'))); }
-  catch { send(res, 200, []); }
-});
-
-route('GET', '/api/stats', (req, res) => {
-  send(res, 200, readStats());
-});
-
-// 爬虫状态 — 本地推送过来的数据
-const SERVER_CRAWLER_FILE = path.join(DATA_DIR, 'crawler-state.json');
-const SERVER_STATUS_FILE = path.join(DATA_DIR, 'status.json');
-
-route('GET', '/api/crawler-state', (req, res) => {
-  try { send(res, 200, JSON.parse(fs.readFileSync(SERVER_CRAWLER_FILE, 'utf-8'))); }
-  catch { send(res, 200, {}); }
-});
-
-route('POST', '/api/update-crawler-state', async (req, res) => {
-  const data = await readBody(req);
-  if (data.__error) { send(res, 400, {}); return; }
-  fs.writeFileSync(SERVER_CRAWLER_FILE + '.tmp', JSON.stringify(data, null, 2), 'utf-8');
-  fs.renameSync(SERVER_CRAWLER_FILE + '.tmp', SERVER_CRAWLER_FILE);
-  send(res, 200, { ok: true });
-});
-
-route('POST', '/api/update-status', async (req, res) => {
-  const data = await readBody(req);
-  if (data.__error) { send(res, 400, {}); return; }
-  fs.writeFileSync(SERVER_STATUS_FILE + '.tmp', JSON.stringify(data, null, 2), 'utf-8');
-  fs.renameSync(SERVER_STATUS_FILE + '.tmp', SERVER_STATUS_FILE);
-  send(res, 200, { ok: true });
-});
-
-// 新: 爬虫状态 — 回退到本地文件
-route('GET', '/api/crawler-state-local', (req, res) => {
-  const stateFile = path.join(ROOT, '..', 'portfolio', 'data', 'crawler-state.json');
-  try { send(res, 200, JSON.parse(fs.readFileSync(stateFile, 'utf-8'))); }
-  catch { send(res, 200, {}); }
-});
-
-route('GET', '/api/status', (req, res) => {
-  // 读取 portfolio 的状态文件
-  const statusFile = path.join(ROOT, '..', 'portfolio', 'data', 'status.json');
-  let status = { active: false, task: '空闲', updated: new Date().toISOString(), errors: 0 };
-  try {
-    status = JSON.parse(fs.readFileSync(statusFile, 'utf-8'));
-  } catch {}
-  send(res, 200, status);
 });
 
 // ============ 路由分发 ============

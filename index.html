@@ -22,10 +22,9 @@
   <a href="/" class="nav-brand">柳亭秋</a>
   <div class="nav-links">
     <a href="/blog/">博客</a>
-    <a href="/daily/">日报</a>
-    <a href="/digest/">速递</a>
+    <a href="/feed.html">精选</a>
     <a href="/docs.html">文档</a>
-    <a href="/tools/security-scan.html">工具</a>
+    <a href="/cases.html">案例</a>
   </div>
 </nav>
 
@@ -115,14 +114,30 @@
   </div>
 </section>
 
+<!-- ====== 精选速览 ====== -->
+<section class="section">
+  <div class="container fade-in">
+    <div class="sec-head">
+      <h2>技术精选</h2>
+      <p>CURATED FEED</p>
+    </div>
+    <div class="feed-preview" id="feedPreview">
+      <p style="text-align:center;color:var(--text-muted);padding:40px">加载中...</p>
+    </div>
+    <div style="text-align:center;margin-top:24px">
+      <a href="/feed.html" class="btn-accent">查看全部精选 →</a>
+    </div>
+  </div>
+</section>
+
 <!-- Footer -->
 <footer class="site-footer">
   <div class="footer-links">
     <a href="/blog/">博客</a>
-    <a href="/daily/">日报</a>
-    <a href="/digest/">速递</a>
+    <a href="/feed.html">精选</a>
     <a href="/docs.html">文档</a>
-    <a href="/tools/security-scan.html">工具</a>
+    <a href="/cases.html">案例</a>
+    <a href="/cooperation.html">合作</a>
     <a href="/login.html">管理</a>
   </div>
   <p>&copy; 2026 柳亭秋</p>
@@ -131,6 +146,22 @@
 </div>
 
 <script src="/js/main.js"></script>
-<script>(()=>{fetch('/api/track',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({page:location.pathname||'/'})}).catch(()=>{})})();</script>
+<script>
+(() => { 'use strict';
+  const preview = document.getElementById('feedPreview');
+  if (!preview) return;
+  fetch('/api/feed?limit=4').then(r => r.json()).then(data => {
+    const items = (data.items || []).slice(0, 4);
+    if (!items.length) { preview.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px">精选内容收集中，稍后更新~</p>'; return; }
+    preview.innerHTML = items.map(i => `
+      <a href="${i.url || '#'}" target="_blank" rel="noopener" class="feed-mini-card">
+        <span class="feed-mini-tag">${i.categoryCN || i.sourceType}</span>
+        <strong>${i.title.slice(0, 80)}</strong>
+        <span class="feed-mini-meta">${i.platform || ''} · ${(i.time||'').slice(0,10)}</span>
+      </a>
+    `).join('');
+  }).catch(() => { preview.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px">数据加载失败</p>'; });
+})();
+</script>
 </body>
 </html>
