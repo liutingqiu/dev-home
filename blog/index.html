@@ -28,15 +28,6 @@
 
   <div class="blog-item fade-in">
     <div class="blog-item-meta">
-      <span>2026-06-03</span>
-      <span>技术速递</span>
-    </div>
-    <h3><a href="/blog/auto-2026-06-03.html">技术速递 · 2026-06-03</a></h3>
-    <p>今日 TOP 20 技术精选，来自 1 个平台。</p>
-  </div>
-
-  <div class="blog-item fade-in">
-    <div class="blog-item-meta">
       <span>2026-06-01</span>
       <span>AI开发</span>
     </div>
@@ -80,14 +71,28 @@
     <p>从鲜味居到 ALTESSE，我用纯 HTML+CSS+JS+Node.js 原生模块交付了多个商业项目。本文复盘零依赖架构的选型逻辑、实际收益和边界。</p>
   </div>
 
+<h2 style="margin-top:48px">✨ 每日精选</h2>
+<div id="feedItems"></div>
 <div style="text-align:center;margin-top:40px">
-  <a href="/daily/">技术日报</a> &nbsp;·&nbsp;
+  <a href="/feed.html">查看更多精选 →</a> &nbsp;·&nbsp;
   <a href="/">返回首页</a>
 </div>
 </div>
 </div>
 <script>
 (()=>{const o=new IntersectionObserver(e=>{e.forEach(e=>{e.isIntersecting&&(e.target.classList.add('visible'),o.unobserve(e.target))})},{threshold:.1});document.querySelectorAll('.fade-in').forEach(e=>o.observe(e))})();
+// 加载每日精选
+fetch('/api/feed?limit=10').then(r=>r.json()).then(d=>{
+  const items=d.items||[];
+  if(!items.length){document.getElementById('feedItems').innerHTML='<p style="color:var(--text-muted);text-align:center;padding:20px">精选内容收集中~</p>';return}
+  document.getElementById('feedItems').innerHTML=items.map(i=>`
+    <div class="blog-item" style="border-left:3px solid var(--accent-success)">
+      <div class="blog-item-meta"><span>${(i.time||'').slice(0,10)}</span><span>${i.platform||''}</span><span>${({AI:'AI资讯',Software:'软件开发',UI:'UI设计',MiniProgram:'小程序'})[i.sourceType]||''}</span></div>
+      <h3><a href="${i.url||'#'}" target="_blank" rel="noopener">${i.title.slice(0,100)}</a></h3>
+      <p>${(i.summary||'').slice(0,120)}</p>
+    </div>
+  `).join('');
+}).catch(()=>{});
 </script>
 </body>
 </html>

@@ -134,7 +134,7 @@ function renderItems(items) {
     return `
     <article class="feed-card">
       <div class="feed-card-top">
-        <span class="feed-card-cat ${i.sourceType}">${i.categoryCN || i.sourceType}</span>
+        <span class="feed-card-cat ${i.sourceType}">${catName(i.sourceType)}</span>
       </div>
       <h3>${i.url ? `<a href="${i.url}" target="_blank" rel="noopener">${escHTML(i.title)}</a>` : escHTML(i.title)}</h3>
       ${i.summary ? `<p class="feed-card-summary">${escHTML(i.summary)}</p>` : ''}
@@ -146,6 +146,10 @@ function renderItems(items) {
   }).join('');
 }
 
+function catName(s) {
+  const m = { AI: 'AI资讯', Software: '软件开发', UI: 'UI设计', MiniProgram: '小程序' };
+  return m[s] || s;
+}
 function escHTML(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
