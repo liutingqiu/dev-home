@@ -4,7 +4,7 @@ const path = require('path');
 const crypto = require('crypto');
 const zlib = require('zlib');
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3458;
 const ROOT = __dirname;
 const ROOT_SAFE = ROOT + path.sep;
 const DATA_DIR = path.join(ROOT, 'data');
